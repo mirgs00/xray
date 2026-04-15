@@ -1,0 +1,17 @@
+{
+  "name": "xray-dashboard",
+  "version": "2.0.0",
+  "description": "Xray Test Execution Dashboard with Proxy Server",
+  "main": "xray-proxy-server.js",
+  "scripts": {
+    "start": "node xray-proxy-server.js",
+    "serve": "npx http-server -p 8080",
+    "dev": "start cmd /c \"node xray-proxy-server.js\" && start cmd /c \"npx http-server -p 8080\""
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
