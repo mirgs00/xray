@@ -40,25 +40,11 @@ window.XRAY_ENV = {
    *  xray_cloud → Xray Cloud client_id + client_secret          */
   authMode: 'basic',
 
-  /** Email address for Basic auth (Jira Cloud).                 */
-  jiraEmail: '',
-
-  /** Jira API token for Basic auth.
-   *  Generate at: https://id.atlassian.com/manage-profile/security/api-tokens */
-  jiraApiToken: '',
-
-  /** Personal Access Token for Bearer auth (Jira Server / DC). */
-  jiraBearerToken: '',
-
   // ── Xray configuration ────────────────────────────────────────
   /** Xray deployment type: 'cloud' | 'server'                   */
   xrayType: 'cloud',
 
-  /** Xray Cloud client ID (from Xray → API Keys).              */
-  xrayClientId: '',
 
-  /** Xray Cloud client secret.                                  */
-  xrayClientSecret: '',
 
   // ── Dashboard defaults ────────────────────────────────────────
   /** Default fix version string pre-filled in the Overview panel.
@@ -70,5 +56,4 @@ window.XRAY_ENV = {
 
   /** Pre-populate the Release B slot in the Compare tab.        */
   compareReleaseB: '',
-
 };

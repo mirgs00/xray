@@ -1,241 +1,529 @@
 /**
- * XRAY TEST DASHBOARD PROXY SERVER
- *
- * - Solves CORS issues by proxying requests to Jira/Xray APIs
- * - Uses Jira REST API v3 (search/jql – non-deprecated)
- * - Supports Xray Cloud authentication and GraphQL
- *
- * Port: 3001
+
+ * XRAY TEST DASHBOARD – PROXY SERVER
+
+ * FIXED & VERIFIED (Jira + Xray Cloud)
+
  */
 
-"use strict";
+'use strict';
 
-const http = require("http");
-const https = require("https");
-const url = require("url");
-const os = require("os");
+
+
+const http = require('http');
+
+const https = require('https');
+
+const crypto = require('crypto');
+
+const os = require('os');
+
+const SERVER_ENV = require('./server-env.js');
+
+
+
+/* ================= CONFIG ================= */
 
 const PORT = 3001;
 
-// ----------------------------------------------------------------------------
-// Environment info
-// ----------------------------------------------------------------------------
-const SERVER_ENV = {
-  platform: process.platform,
-  nodeVersion: process.version,
+const XRAY_BASE_URL = 'https://xray.cloud.getxray.app';
+
+const XRAY_TOKEN_TTL_MS = 55 * 60 * 1000;
+
+const PAGE_SIZE = 100;
+
+const HARD_MAX_ISSUES = 2000;
+
+
+
+const DEFAULT_FIELDS = [
+
+  'summary',
+
+  'status',
+
+  'assignee',
+
+  'issuetype',
+
+  'fixVersions',
+
+  'labels',
+
+  'updated',
+
+  'environment'
+
+];
+
+
+
+/* ================= FAIL FAST ================= */
+
+(function validateEnv() {
+
+  const missing = [];
+
+  if (!SERVER_ENV.JIRA_EMAIL) missing.push('JIRA_EMAIL');
+
+  if (!SERVER_ENV.JIRA_API_TOKEN) missing.push('JIRA_API_TOKEN');
+
+  if (!SERVER_ENV.XRAY_CLIENT_ID) missing.push('XRAY_CLIENT_ID');
+
+  if (!SERVER_ENV.XRAY_CLIENT_SECRET) missing.push('XRAY_CLIENT_SECRET');
+
+  if (missing.length) {
+
+    console.error('❌ Missing env vars:', missing.join(', '));
+
+    process.exit(1);
+
+  }
+
+})();
+
+
+
+/* ================= SERVER INFO ================= */
+
+const SERVER_INFO = {
+
   hostname: os.hostname(),
-  startTime: new Date().toISOString(),
+
+  platform: process.platform,
+
+  nodeVersion: process.version,
+
   pid: process.pid,
+
+  startTime: new Date().toISOString()
+
 };
 
-// ----------------------------------------------------------------------------
-// Utilities
-// ----------------------------------------------------------------------------
 
-function clean(value = "") {
-  return typeof value === "string" ? value.replace(/&amp;/g, "&") : value;
-}
 
-function jsonResponse(res, status, data) {
+/* ================= AUTH ================= */
+
+const JIRA_AUTH = {
+
+  email: SERVER_ENV.JIRA_EMAIL,
+
+  token: SERVER_ENV.JIRA_API_TOKEN
+
+};
+
+
+
+let XRAY_TOKEN_CACHE = { token: null, expiresAt: 0 };
+
+
+
+/* ================= HELPERS ================= */
+
+
+
+function json(res, status, body, reqId) {
+
   res.writeHead(status, {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
+
+    'Content-Type': 'application/json',
+
+    'Access-Control-Allow-Origin': '*',
+
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+
+    'X-Request-Id': reqId
+
   });
-  res.end(JSON.stringify(data));
+
+  res.end(JSON.stringify(body));
+
 }
+
+
 
 function readBody(req) {
+
   return new Promise((resolve, reject) => {
+
     const chunks = [];
-    req.on("data", (c) => chunks.push(c));
-    req.on("end", () => resolve(Buffer.concat(chunks).toString()));
-    req.on("error", reject);
+
+    req.on('data', c => chunks.push(c));
+
+    req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+
+    req.on('error', reject);
+
   });
+
 }
 
-function proxyRequest(targetUrl, options = {}, body = null) {
+
+
+function jiraAuthHeader() {
+
+  return {
+
+    Authorization:
+
+      'Basic ' +
+
+      Buffer.from(`${JIRA_AUTH.email}:${JIRA_AUTH.token}`).toString('base64')
+
+  };
+
+}
+
+
+
+/* ================= CORE PROXY ================= */
+
+
+
+function proxyRequest(url, options = {}, body = null) {
+
   return new Promise((resolve, reject) => {
-    const target = new URL(targetUrl);
-    const transport = target.protocol === "https:" ? https : http;
 
-    const req = transport.request(
-      target,
+    const u = new URL(url);
+
+    const lib = u.protocol === 'https:' ? https : http;
+
+
+
+    const req = lib.request(
+
       {
-        method: options.method || "GET",
-        headers: options.headers || {},
+
+        hostname: u.hostname,
+
+        path: u.pathname + u.search,
+
+        method: options.method || 'GET',
+
+        headers: {
+
+          'Content-Type': 'application/json',
+
+          ...(options.headers || {})
+
+        }
+
       },
-      (res) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk));
-        res.on("end", () =>
-          resolve({
-            status: res.statusCode,
-            body: data,
-            headers: res.headers,
-          })
-        );
+
+      res => {
+
+        let data = '';
+
+        res.on('data', d => (data += d));
+
+        res.on('end', () => {
+
+          try {
+
+            resolve({
+
+              status: res.statusCode,
+
+              data: data ? JSON.parse(data) : null
+
+            });
+
+          } catch {
+
+            resolve({ status: res.statusCode, data });
+
+          }
+
+        });
+
       }
+
     );
 
-    req.on("error", reject);
-    if (body) req.write(body);
+
+
+    req.on('error', reject);
+
+    if (body) req.write(JSON.stringify(body));
+
     req.end();
+
   });
+
 }
 
-function buildAuthHeader(auth) {
-  if (auth.mode === "basic") {
-    const encoded = Buffer.from(`${auth.email}:${auth.token}`).toString(
-      "base64"
-    );
-    return { Authorization: `Basic ${encoded}` };
-  }
 
-  if (auth.mode === "bearer") {
-    return { Authorization: `Bearer ${auth.bearerToken}` };
-  }
 
-  return {};
-}
+/* ================= JIRA SEARCH ================= */
 
-// ----------------------------------------------------------------------------
-// Server
-// ----------------------------------------------------------------------------
-const server = http.createServer(async (req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-  const { pathname } = parsedUrl;
 
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    jsonResponse(res, 204, {});
-    return;
-  }
 
-  // Health check
-  if (req.method === "GET" && pathname === "/health") {
-    jsonResponse(res, 200, {
-      status: "ok",
-      server: SERVER_ENV,
-      uptime: process.uptime(),
+async function jiraSearchBounded(jiraUrl, jql) {
+
+  let startAt = 0;
+
+  const issues = [];
+
+
+
+  while (true) {
+
+    const url =
+
+      `${jiraUrl}/rest/api/3/search/jql` +
+
+      `?jql=${encodeURIComponent(jql)}` +
+
+      `&startAt=${startAt}` +
+
+      `&maxResults=${PAGE_SIZE}` +
+
+      `&fields=${DEFAULT_FIELDS.join(',')}`;
+
+
+
+    const r = await proxyRequest(url, {
+
+      headers: jiraAuthHeader()
+
     });
-    return;
+
+
+
+    if (r.status !== 200 || !r.data?.issues) break;
+
+
+
+    issues.push(...r.data.issues);
+
+    if (r.data.issues.length < PAGE_SIZE) break;
+
+
+
+    startAt += PAGE_SIZE;
+
+    if (issues.length >= HARD_MAX_ISSUES) break;
+
   }
 
-  // Jira JQL Search (✅ non-deprecated API)
-  if (req.method === "GET" && pathname === "/api/jira/search") {
-    try {
-      const jiraUrl = clean(parsedUrl.query.jiraUrl);
-      const jql = clean(parsedUrl.query.jql);
-      const fields = clean(parsedUrl.query.fields);
-      const maxResults = Number(clean(parsedUrl.query.maxResults || 50));
-      const auth = JSON.parse(clean(parsedUrl.query.auth || "{}"));
 
-      if (!jiraUrl || !jql) {
-        jsonResponse(res, 400, { error: "Missing jiraUrl or jql" });
-        return;
+
+  return {
+
+    totalReturned: issues.length,
+
+    truncated: issues.length >= HARD_MAX_ISSUES,
+
+    issues: issues.slice(0, HARD_MAX_ISSUES)
+
+  };
+
+}
+
+
+
+/* ================= XRAY AUTH ================= */
+
+
+
+async function getXrayToken() {
+
+  if (XRAY_TOKEN_CACHE.token && Date.now() < XRAY_TOKEN_CACHE.expiresAt) {
+
+    return XRAY_TOKEN_CACHE.token;
+
+  }
+
+
+
+  const r = await proxyRequest(
+
+    `${XRAY_BASE_URL}/api/v2/authenticate`,
+
+    { method: 'POST' },
+
+    {
+
+      client_id: SERVER_ENV.XRAY_CLIENT_ID,
+
+      client_secret: SERVER_ENV.XRAY_CLIENT_SECRET
+
+    }
+
+  );
+
+
+
+  if (r.status !== 200) throw new Error('XRAY_AUTH_FAILED');
+
+
+
+  XRAY_TOKEN_CACHE = {
+
+    token: r.data,
+
+    expiresAt: Date.now() + XRAY_TOKEN_TTL_MS
+
+  };
+
+
+
+  return r.data;
+
+}
+
+
+
+/* ================= HTTP ROUTER ================= */
+
+
+
+const server = http.createServer(async (req, res) => {
+
+  const reqId = crypto.randomUUID();
+
+  const url = new URL(req.url, `http://${req.headers.host}`);
+
+  const pathname = url.pathname;
+
+  const query = Object.fromEntries(url.searchParams.entries());
+
+
+
+  if (req.method === 'OPTIONS') {
+
+    return json(res, 204, null, reqId);
+
+  }
+
+
+
+  try {
+
+    /* ---------- HEALTH ---------- */
+
+    if (pathname === '/health') {
+
+      return json(res, 200, {
+
+        status: 'ok',
+
+        server: SERVER_INFO,
+
+        config: {
+
+          jiraConfigured: !!JIRA_AUTH.email,
+
+          xrayConfigured: !!SERVER_ENV.XRAY_CLIENT_ID
+
+        }
+
+      }, reqId);
+
+    }
+
+
+
+    /* ---------- JIRA SEARCH ---------- */
+
+    if (req.method === 'GET' && pathname === '/api/jira/search') {
+
+      if (!query.jiraUrl || !query.jql) {
+
+        return json(res, 400, { error: 'jiraUrl and jql required' }, reqId);
+
       }
 
-      const headers = buildAuthHeader(auth);
-      headers["Content-Type"] = "application/json";
+      const result = await jiraSearchBounded(query.jiraUrl, query.jql);
 
-      const targetUrl =
-        `${jiraUrl}/rest/api/3/search/jql` +
-        `?jql=${encodeURIComponent(jql)}` +
-        `&maxResults=${maxResults}` +
-        (fields ? `&fields=${encodeURIComponent(fields)}` : "");
+      return json(res, 200, result, reqId);
 
-      console.log("[JIRA →]", targetUrl);
-
-      const result = await proxyRequest(targetUrl, {
-        method: "GET",
-        headers,
-      });
-
-      jsonResponse(res, result.status, JSON.parse(result.body));
-      return;
-    } catch (err) {
-      console.error("[Proxy Jira Error]", err);
-      jsonResponse(res, 500, { error: err.message });
-      return;
     }
-  }
 
-  // Xray Cloud Authentication
-  if (req.method === "POST" && pathname === "/api/xray/authenticate") {
-    try {
-      const body = JSON.parse(await readBody(req));
 
-      const result = await proxyRequest(
-        "https://xray.cloud.getxray.app/api/v1/authenticate",
-        { method: "POST", headers: { "Content-Type": "application/json" } },
-        JSON.stringify(body)
+
+    /* ---------- PROJECT VERSIONS ---------- */
+
+    if (req.method === 'GET' && pathname === '/api/jira/projectVersions') {
+
+      if (!query.jiraUrl || !query.projectKey) {
+
+        return json(res, 400, { error: 'jiraUrl and projectKey required' }, reqId);
+
+      }
+
+      const r = await proxyRequest(
+
+        `${query.jiraUrl}/rest/api/3/project/${query.projectKey}/versions`,
+
+        { headers: jiraAuthHeader() }
+
       );
 
-      jsonResponse(res, result.status, JSON.parse(result.body));
-      return;
-    } catch (err) {
-      console.error("[Proxy Xray Auth Error]", err);
-      jsonResponse(res, 500, { error: err.message });
-      return;
+      return json(res, r.status, r.data, reqId);
+
     }
-  }
 
-  // Xray Cloud GraphQL
-  if (req.method === "POST" && pathname === "/api/xray/graphql") {
-    try {
-      const body = await readBody(req);
-      const authHeader = req.headers.authorization;
 
-      const result = await proxyRequest(
-        "https://xray.cloud.getxray.app/api/v2/graphql",
+
+    /* ---------- XRAY GRAPHQL ---------- */
+
+    if (req.method === 'POST' && pathname === '/api/xray/graphql') {
+
+      const body = JSON.parse(await readBody(req) || '{}');
+
+      if (!body.query) {
+
+        return json(res, 400, { error: 'Missing GraphQL query' }, reqId);
+
+      }
+
+      const token = await getXrayToken();
+
+      const r = await proxyRequest(
+
+        `${XRAY_BASE_URL}/api/v2/graphql`,
+
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authHeader,
-          },
+
+          method: 'POST',
+
+          headers: { Authorization: `Bearer ${token}` }
+
         },
+
         body
+
       );
 
-      jsonResponse(res, result.status, JSON.parse(result.body));
-      return;
-    } catch (err) {
-      console.error("[Proxy Xray GraphQL Error]", err);
-      jsonResponse(res, 500, { error: err.message });
-      return;
+      return json(res, r.status, r.data, reqId);
+
     }
+
+
+
+    json(res, 404, { error: 'Not found' }, reqId);
+
+
+
+  } catch (e) {
+
+    json(res, 500, { error: e.message }, reqId);
+
   }
 
-  // Not found
-  jsonResponse(res, 404, { error: "Not found" });
 });
 
-// ----------------------------------------------------------------------------
-// Start server
-// ----------------------------------------------------------------------------
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`
-╔═══════════════════════════════════════════════════════════════════════════╗
-║ XRAY TEST DASHBOARD PROXY SERVER                                          ║
-║                                                                           ║
-║ Running on:  http://localhost:${PORT}                                     ║
-║ Health:      http://localhost:${PORT}/health                              ║
-║ Platform:    ${SERVER_ENV.platform} | Node ${SERVER_ENV.nodeVersion}      ║
-║ PID:         ${SERVER_ENV.pid}                                            ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-`);
-});
 
-server.on("error", (err) => {
-  console.error("Server error:", err);
-  process.exit(1);
-});
 
-process.on("SIGINT", () => {
-  console.log("\n🛑 Shutting down proxy server...");
-  server.close(() => process.exit(0));
+/* ================= START ================= */
+
+
+
+server.listen(PORT, () => {
+
+  console.log(`✅ Xray proxy running on http://localhost:${PORT}`);
+
 });

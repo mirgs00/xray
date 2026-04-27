@@ -1,7 +1,7 @@
 {
   "name": "xray-dashboard",
-  "version": "2.0.0",
-  "description": "Xray Test Execution Dashboard with Proxy Server",
+  "version": "2.0.1",
+  "description": "Xray Test Execution Dashboard with Proxy Server (AU Xray Cloud)",
   "main": "xray-proxy-server.js",
   "scripts": {
     "start": "node xray-proxy-server.js",

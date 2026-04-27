@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
-      Xray Test Execution Dashboard v11 – Trend Line + Raven Pagination
+      Xray Test Execution Dashboard v15 – Trend Line + Raven Pagination
     </title>
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap"
@@ -36,6 +36,28 @@
         --accent: #00e5a0;
         --card-glow-pass: rgba(0, 229, 160, 0.06);
         --card-glow-fail: rgba(255, 77, 106, 0.06);
+      }
+      :root[data-theme="light"] {
+        --bg: #f6f7fb;
+        --surface: #ffffff;
+        --surface2: #f1f3f8;
+        --border: #dcdfea;
+        --border2: #cfd3e3;
+
+        --text: #1c2333;
+        --text2: #4b5568;
+        --text3: #6b7280;
+
+        --pass: #0aa769;
+        --fail: #e23b54;
+        --skip: #d48806;
+        --info: #2563eb;
+        --blocked: #9333ea;
+
+        --accent: #0aa769;
+
+        --card-glow-pass: rgba(10, 167, 105, 0.08);
+        --card-glow-fail: rgba(226, 59, 84, 0.08);
       }
       * {
         box-sizing: border-box;
@@ -186,6 +208,11 @@
       .btn-secondary:hover {
         color: var(--text);
         border-color: var(--text3);
+      }
+      .fetch-progress-sticky {
+        position: sticky;
+        top: 116px; /* below top bar + tabs */
+        z-index: 10;
       }
       .status-badge {
         display: inline-flex;
@@ -1024,13 +1051,247 @@
         max-height: 300px;
         width: 100%;
       }
+      .label-expandable {
+        cursor: pointer;
+      }
+      .label-expandable:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .label-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        gap: 16px;
+        align-items: center;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.2s;
+      }
+      .label-row:hover {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .label-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+      }
+      .label-expand-icon {
+        font-size: 10px;
+        color: var(--text3);
+        transition: transform 0.2s;
+      }
+      .label-expand-icon.expanded {
+        transform: rotate(90deg);
+      }
+      .label-counts {
+        display: flex;
+        gap: 16px;
+        font-family: "Space Mono", monospace;
+        font-size: 11px;
+        color: var(--text2);
+      }
+      .label-counts span {
+        white-space: nowrap;
+      }
+      .label-status-bar {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .label-status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: "Space Mono", monospace;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .label-status-chip.pass {
+        background: rgba(0, 229, 160, 0.15);
+        color: var(--pass);
+      }
+      .label-status-chip.fail {
+        background: rgba(255, 77, 106, 0.15);
+        color: var(--fail);
+      }
+      .label-status-chip.skip {
+        background: rgba(255, 169, 61, 0.15);
+        color: var(--skip);
+      }
+      .label-tests-section {
+        display: none;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+      }
+      .label-tests-section.open {
+        display: block;
+      }
+      .label-tests-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 20px 8px;
+      }
+      .label-tests-search {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 12px;
+        padding: 6px 10px;
+        outline: none;
+        min-width: 180px;
+      }
+      .label-tests-search:focus {
+        border-color: var(--pass);
+      }
+      .label-tests-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .label-tests-table th {
+        text-align: left;
+        padding: 8px 16px;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text3);
+        font-family: "Space Mono", monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+        background: var(--surface);
+      }
+      .label-tests-table th:hover {
+        color: var(--text2);
+      }
+      .label-tests-table th:first-child {
+        padding-left: 20px;
+      }
+      .label-tests-table td {
+        padding: 10px 16px;
+        font-size: 12px;
+        color: var(--text2);
+        border-bottom: 1px solid var(--border);
+      }
+      .label-tests-table td:first-child {
+        padding-left: 20px;
+      }
+      .label-tests-table tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .label-tests-table tr:last-child td {
+        border-bottom: none;
+      }
+      .label-test-key {
+        font-family: "Space Mono", monospace;
+        font-size: 11px;
+        color: var(--info);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .label-test-key:hover {
+        text-decoration: underline;
+      }
+      .exec-stats-bar {
+        display: flex;
+        gap: 12px;
+        padding: 12px 20px;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      .exec-stat {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 12px;
+        font-family: "Space Mono", monospace;
+      }
+      .exec-stat.total {
+        color: var(--text);
+      }
+      .exec-stat.pass {
+        color: var(--pass);
+        border-color: rgba(0, 229, 160, 0.2);
+        background: rgba(0, 229, 160, 0.05);
+      }
+      .exec-stat.fail {
+        color: var(--fail);
+        border-color: rgba(255, 77, 106, 0.2);
+        background: rgba(255, 77, 106, 0.05);
+      }
+      .exec-stat.skip {
+        color: var(--skip);
+        border-color: rgba(255, 169, 61, 0.2);
+        background: rgba(255, 169, 61, 0.05);
+      }
+      .exec-controls {
+        display: flex;
+        gap: 10px;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .exec-controls .search-input {
+        min-width: 200px;
+      }
+      .exec-controls select {
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 12px;
+        padding: 7px 10px;
+        outline: none;
+        cursor: pointer;
+        min-width: 120px;
+      }
+      .exec-controls select:focus {
+        border-color: var(--pass);
+      }
+      .exec-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+      }
+      .exec-table th.sortable:hover {
+        color: var(--pass);
+        background: rgba(0, 229, 160, 0.05);
+      }
+      .exec-table th.sorted-asc::after {
+        content: " ↑";
+        color: var(--pass);
+      }
+      .exec-table th.sorted-desc::after {
+        content: " ↓";
+        color: var(--pass);
+      }
+      .exec-table td {
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--text2);
+        vertical-align: middle;
+      }
+      .exec-pass { color: var(--pass); font-family: "Space Mono", monospace; font-weight: 700; }
+      .exec-fail { color: var(--fail); font-family: "Space Mono", monospace; font-weight: 700; }
+      .exec-skip { color: var(--skip); font-family: "Space Mono", monospace; font-weight: 700; }
+      .exec-total { font-family: "Space Mono", monospace; font-weight: 700; color: var(--text); }
     </style>
   </head>
   <body>
     <div class="top-bar">
       <div class="brand">
         <div class="brand-icon">⚡</div>
-        XRAY TEST EXECUTION DASHBOARD v11 – Line Chart + Raven Pagination
+        XRAY TEST EXECUTION DASHBOARD v15 – Line Chart + Raven Pagination
       </div>
       <div class="top-actions">
         <span class="pill" id="topFixVersion">fixVersion: —</span
@@ -1044,6 +1305,9 @@
           style="display: none"
         >
           ↻ Refresh
+        </button>
+        <button class="btn btn-secondary" onclick="toggleTheme()">
+          🌓 Theme
         </button>
       </div>
     </div>
@@ -1073,18 +1337,15 @@
       <div class="tab" onclick="switchTab('api', this)">⚙️ API Setup</div>
     </div>
     <div class="main">
-      <!-- OVERVIEW TAB -->
-      <div id="tab-overview" class="view active">
+    <!-- OVERVIEW TAB -->
+      <div id="tab-overview" class="view active">  
         <div class="config-panel fade-in">
+          <!-- all your config-group blocks -->
           <div class="config-group">
-            <label>Jira Base URL</label
-            ><input
-              class="config-input"
-              id="jiraUrl"
-              placeholder="https://your-org.atlassian.net"
-              value=""
-            />
+            <label>Jira Base URL</label>
+            <input class="config-input" id="jiraUrl" />
           </div>
+
           <div class="config-group">
             <label>Project Key</label
             ><input
@@ -1095,8 +1356,8 @@
             />
           </div>
           <div class="config-group">
-            <label>Fix Version</label>
-            <input
+            <label>Fix Version</label
+            ><input
               class="config-input"
               id="fixVersion"
               placeholder="auto (today's date)"
@@ -1142,11 +1403,11 @@
             </select>
           </div>
           <div class="config-group">
-            <label>Test Label</label
-            ><select class="config-input filter-select" id="labelFilter">
+            <label>Test Type</label>
+            <select class="config-input filter-select" id="labelFilter">
               <option value="all">All Tests</option>
-              <option value="automation">Automation Only</option>
-              <option value="manual">Manual Only</option>
+              <option value="Cucumber">Cucumber</option>
+              <option value="Manual">Manual</option>
             </select>
           </div>
           <div class="config-group">
@@ -1158,10 +1419,41 @@
           </div>
           <div class="config-group">
             <label>&nbsp;</label
-            ><button class="btn btn-primary" onclick="triggerFetch()">
+            ><button class="btn btn-primary" id="fetchExecBtn" onclick="triggerFetch()">
               ⚡ Fetch Executions
             </button>
           </div>
+          <button
+            class="btn btn-secondary"
+            id="autoFetchBtn"
+            onclick="startAutoFetch()"
+          >
+            ▶ Auto‑fetch all executions
+          </button>
+
+          <button
+            class="btn btn-secondary"
+            id="pauseFetchBtn"
+            style="display:none"
+            onclick="togglePauseFetch()"
+          >
+            ⏸ Pause
+          </button>
+
+          <button
+            class="btn btn-secondary"
+            id="cancelFetchBtn"
+            style="display:none"
+            onclick="cancelFetch()"
+          >
+            ✕ Cancel
+          </button>
+
+          <span
+            id="autoFetchEta"
+            style="font-size:11px;color:var(--text3);margin-left:8px"
+          ></span>
+
           <div class="config-group">
             <label>&nbsp;</label
             ><button class="btn btn-secondary" onclick="autoDetectRelease()">
@@ -1180,7 +1472,53 @@
               🎭 Load Demo Data
             </button>
           </div>
+          <div class="config-group">
+            <label>&nbsp;</label
+            ><button class="btn btn-secondary" onclick="clearAllData()">
+              🗑 Clear All Data
+            </button>
+          </div>
         </div>
+        <!-- ✅ Fetch Progress (DO NOT put inside config-panel) -->
+<div
+  id="fetchProgressWrap"
+  class="fetch-progress-sticky"
+  style="display: none; margin-bottom: 16px"
+>
+  <div
+    style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #8b90a8;
+      margin-bottom: 6px;
+      font-family: 'Space Mono', monospace;
+    "
+  >
+    <span id="fetchProgressText">Preparing fetch…</span>
+    <span id="fetchProgressCount">0 / 0</span>
+  </div>
+
+  <div
+    style="
+      height: 6px;
+      background: #1e2130;
+      border-radius: 3px;
+      overflow: hidden;
+    "
+  >
+    <div
+      id="fetchProgressBar"
+      style="
+        height: 100%;
+        width: 0%;
+        background: #00e5a0;
+        transition: width 0.25s ease;
+      "
+    ></div>
+  </div>
+</div>
         <div id="labelsChipPanel">
           <div
             style="
@@ -1305,20 +1643,65 @@
               <span class="icon">🔬</span> All Test Executions
             </div>
           </div>
+          <div id="execStatsBar" class="exec-stats-bar">
+            <div class="exec-stat total">
+              <span>📋</span>
+              <span id="execStatTotal">0</span> executions
+            </div>
+            <div class="exec-stat total">
+              <span>🧪</span>
+              <span id="execStatTests">0</span> tests
+            </div>
+            <div class="exec-stat pass">
+              <span>✓</span>
+              <span id="execStatPass">0</span> pass
+            </div>
+            <div class="exec-stat fail">
+              <span>✕</span>
+              <span id="execStatFail">0</span> fail
+            </div>
+            <div class="exec-stat skip">
+              <span>⏭</span>
+              <span id="execStatSkip">0</span> skip
+            </div>
+          </div>
+          <div class="exec-controls">
+            <input
+              class="search-input"
+              id="execSearchInput"
+              placeholder="🔍 Search executions..."
+              oninput="debouncedExecFilter()"
+            />
+            <select id="execStatusFilter" onchange="applyExecFilter()">
+              <option value="">All Statuses</option>
+              <option value="pass">Has Pass</option>
+              <option value="fail">Has Fail</option>
+              <option value="skip">Has Skip</option>
+            </select>
+            <select id="execEnvFilter" onchange="applyExecFilter()">
+              <option value="">All Environments</option>
+            </select>
+            <select id="execVersionFilter" onchange="applyExecFilter()">
+              <option value="">All Fix Versions</option>
+            </select>
+            <select id="execLabelFilter" onchange="applyExecFilter()">
+              <option value="">All Labels</option>
+            </select>
+          </div>
           <div style="overflow-x: auto">
-            <table>
+            <table class="exec-table">
               <thead>
                 <tr>
-                  <th>EXEC KEY</th>
-                  <th>SUMMARY</th>
-                  <th>FIX VERSION</th>
-                  <th>SERVER ENV</th>
-                  <th>TOTAL</th>
-                  <th>PASS</th>
-                  <th>FAIL</th>
-                  <th>SKIP</th>
-                  <th>STARTED</th>
-                  <th>ASSIGNEE</th>
+                  <th class="sortable" onclick="sortExecTable('key')">EXEC KEY ↕</th>
+                  <th class="sortable" onclick="sortExecTable('summary')">SUMMARY ↕</th>
+                  <th class="sortable" onclick="sortExecTable('labels')">LABELS ↕</th>
+                  <th class="sortable" onclick="sortExecTable('started')">STARTED ↕</th>
+                  <th class="sortable" onclick="sortExecTable('environment')">ENVIRONMENT ↕</th>
+                  <th class="sortable" onclick="sortExecTable('pass')">PASS ↕</th>
+                  <th class="sortable" onclick="sortExecTable('fail')">FAIL ↕</th>
+                  <th class="sortable" onclick="sortExecTable('skip')">SKIP ↕</th>
+                  <th class="sortable" onclick="sortExecTable('total')">TOTAL ↕</th>
+                  <th class="sortable" onclick="sortExecTable('assignee')">ASSIGNEE ↕</th>
                 </tr>
               </thead>
               <tbody id="execTableBody"></tbody>
@@ -1772,18 +2155,26 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <span class="icon">🏷️</span> Automation Test Runs per Label
+              <span class="icon">🏷️</span> Label Analytics
             </div>
-            <div style="display: flex; gap: 8px">
+            <div style="display: flex; gap: 8px; align-items: center">
+              <input
+                class="search-input"
+                id="labelSearchInput"
+                placeholder="🔍 Filter labels..."
+                oninput="filterLabels()"
+                style="min-width: 180px; padding: 6px 12px"
+              />
               <button class="btn btn-secondary" onclick="exportLabelCSV()">
                 ⬇ Export CSV
               </button>
             </div>
           </div>
-          <div class="card-body" id="labelStatsBody">
+          <div id="labelStatsBody">
             <div class="empty-state">
               <div class="empty-icon">🏷️</div>
               <div class="empty-title">No data loaded</div>
+              <div class="empty-sub">Fetch test executions to see label analytics</div>
             </div>
           </div>
         </div>
@@ -2050,6 +2441,39 @@
             </div>
           </div>
         </div>
+        <div class="card" style="margin-top: 16px">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">🧠</span> Fetch Debug Console
+            </div>
+            <div style="display: flex; gap: 6px">
+              <button
+                class="btn btn-secondary"
+                onclick="clearDebugLog()"
+                style="font-size: 11px"
+              >
+                🗑 Clear
+              </button>
+            </div>
+          </div>
+
+          <div
+            id="debugConsole"
+            style="
+              background: #0f1117;
+              border-top: 1px solid #1e2130;
+              padding: 12px;
+              font-family: &quot;Space Mono&quot;, monospace;
+              font-size: 11px;
+              color: #8b90a8;
+              max-height: 260px;
+              overflow-y: auto;
+              white-space: pre-wrap;
+            "
+          >
+            // Debug output will appear here…
+          </div>
+        </div>
         <div class="card">
           <div class="card-header">
             <div class="card-title">
@@ -2129,25 +2553,34 @@
         trendHistory: null,
         slotA: null,
         slotB: null,
+        isReady: false,
+        cloudPageSize: 50,     // how many executions per page
+        cloudPageIndex: 0,    // current page (0-based)
+        cloudHasMore: true,   // whether more executions remain
+        autoPaging: false,        // auto-fetch loop running?
+        autoPagingPaused: false, // pause flag
+        pageTimings: [],          // ms per completed page
       };
 
       let xrayTokenCache = { token: null, expiresAt: 0 };
       let passRateChart = null;
 
       // --- UTILITIES ---
-      function escapeHtml(str) {
-        if (!str) return "";
-        return str
-          .replace(/[&<>]/g, function (m) {
-            if (m === "&") return "&amp;";
-            if (m === "<") return "&lt;";
-            if (m === ">") return "&gt;";
-            return m;
-          })
-          .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function (c) {
-            return c;
-          });
+      function escapeHtml(val) {
+        if (val === null || val === undefined) return "";
+        if (typeof val !== "string") {
+          // stringify primitives / arrays safely
+          val = Array.isArray(val) ? val.join(", ") : String(val);
+        }
+
+        return val
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
       }
+
       function fmt(dt) {
         if (!dt) return "—";
         return new Date(dt).toLocaleDateString("en-AU", {
@@ -2157,6 +2590,7 @@
           minute: "2-digit",
         });
       }
+      
       function dur(start, end) {
         if (!start || !end) return "—";
         const ms = new Date(end) - new Date(start);
@@ -2173,6 +2607,53 @@
         if (s === "BLOCKED") return "blocked";
         return "todo";
       }
+
+      /**
+       * Deduplicate Xray test runs to Jira semantics:
+       * ✅ one test per execution
+       * ✅ collapses retries / reruns
+       *
+       * Identity = execKey + testKey
+       */
+      function dedupeTestRuns(runs) {
+        const map = new Map();
+
+        for (const r of runs) {
+          if (!r.execKey || !r.key) continue;
+
+          const id = `${r.execKey}::${r.key}`;
+
+          if (!map.has(id)) {
+            map.set(id, r);
+          } else {
+            // Optional: keep the "worst" status if duplicates occur
+            const existing = map.get(id);
+            if (statusRank(r.status) < statusRank(existing.status)) {
+              map.set(id, r);
+            }
+          }
+        }
+
+        return Array.from(map.values());
+      }
+
+      /**
+       * Jira‑equivalent execution count for a single test
+       */
+      function getExecutionCountForTest(testKey) {
+        return new Set(
+          state.testRuns
+            .filter(r => r.key === testKey)
+            .map(r => r.execKey)
+        ).size;
+      }
+
+      function getJiraExecutionCount() {
+        return new Set(
+          state.executions.map(e => e.key)
+        ).size;
+      }
+
       function notify(msg, type = "success") {
         const n = document.getElementById("notif");
         if (!n) return;
@@ -2182,6 +2663,149 @@
         n.className = `notif ${type} show`;
         setTimeout(() => n.classList.remove("show"), 3500);
       }
+
+      // ---------- Debug Logger ----------
+      function logDebug(message, data) {
+        const el = document.getElementById("debugConsole");
+        const ts = new Date().toLocaleTimeString();
+
+        const line =
+          typeof data !== "undefined"
+            ? `[${ts}] ${message} ${JSON.stringify(data)}`
+            : `[${ts}] ${message}`;
+
+        if (el) {
+          el.textContent += line + "\n";
+          el.scrollTop = el.scrollHeight;
+        }
+
+        console.log(line);
+      }
+
+      function clearDebugLog() {
+        const el = document.getElementById("debugConsole");
+        if (el) el.textContent = "";
+      }
+
+      // ---------- Progress Bar Controller ----------
+      const fetchProgress = {
+        total: 0,
+        done: 0,
+        startedAt: 0,
+        lastTickAt: 0,
+        execDurations: [],
+        stallTimer: null,
+
+        STALL_THRESHOLD_MS: 15000, // 15s with no progress = stalled
+
+        start(total) {
+          this.total = total;
+          this.done = 0;
+          this.execDurations = [];
+          this.startedAt = Date.now();
+          this.lastTickAt = Date.now();
+          this._stallNotified = false;
+
+          document.getElementById("fetchProgressWrap").style.display = "block";
+          this.update("Starting Xray fetch…");
+
+          this._startStallWatchdog();
+        },
+
+        tick(execKey, durationMs) {
+          this.done++;
+          this.lastTickAt = Date.now();
+
+          if (durationMs) {
+            this.execDurations.push(durationMs);
+          }
+
+          const eta = this._estimateEta();
+          this.update(`Fetched ${execKey} · ETA ${eta}`);
+        },
+
+        update(message) {
+          const pct = this.total
+            ? Math.round((this.done / this.total) * 100)
+            : 0;
+
+          document.getElementById("fetchProgressBar").style.width = `${pct}%`;
+          document.getElementById("fetchProgressText").textContent = message;
+          document.getElementById("fetchProgressCount").textContent =
+            `${this.done} / ${this.total}`;
+        },
+
+        finish() {
+          this._stopStallWatchdog();
+          this.update("Fetch complete");
+
+          setTimeout(() => {
+            document.getElementById("fetchProgressWrap").style.display = "none";
+          }, 1500);
+        },
+
+        /* ---------- ETA helpers ---------- */
+
+        _estimateEta() {
+          if (this.execDurations.length === 0) return "…";
+
+          // moving average, last 5 executions
+          const recent = this.execDurations.slice(-5);
+          const avgMs = recent.reduce((a, b) => a + b, 0) / recent.length;
+
+          const remaining = this.total - this.done;
+          const etaMs = avgMs * remaining;
+
+          return this._fmtDuration(etaMs);
+        },
+
+        _fmtDuration(ms) {
+          if (!ms || ms < 1000) return "<1s";
+          const s = Math.ceil(ms / 1000);
+          if (s < 60) return `${s}s`;
+          const m = Math.floor(s / 60);
+          return `${m}m ${s % 60}s`;
+        },
+
+        /* ---------- Stall detection ---------- */
+
+        _startStallWatchdog() {
+          this._stopStallWatchdog();
+
+          this.stallTimer = setInterval(() => {
+            const delta = Date.now() - this.lastTickAt;
+
+            if (delta > this.STALL_THRESHOLD_MS) {
+              const stalledFor = Math.round(delta / 1000);
+              const msg = `⚠ Stalled — no progress for ${stalledFor}s`;
+
+              this.update(msg);
+
+              logDebug("STALL DETECTED", {
+                stalledForSeconds: stalledFor,
+                completed: this.done,
+                total: this.total,
+              });
+
+              // 🔔 Notify fetch layer exactly once per stall window
+              if (!this._stallNotified) {
+                this._stallNotified = true;
+                if (typeof this.onStall === "function") {
+                  this.onStall();
+                }
+              }
+            }
+          }, 2000);
+        },
+
+        _stopStallWatchdog() {
+          if (this.stallTimer) {
+            clearInterval(this.stallTimer);
+            this.stallTimer = null;
+          }
+        },
+      };
+
       function buildHeaders(creds) {
         if (!creds) return { "Content-Type": "application/json" };
         if (creds.mode === "basic")
@@ -2211,11 +2835,16 @@
         proxyUrl: null,
         serverInfo: null,
         async detect() {
-          const proxyParam = params.get("proxy");
-          if (proxyParam?.startsWith("local")) {
-            const port = proxyParam.split(":")[1] || "3001";
-            this.proxyUrl = `http://localhost:${port}`;
-            this.type = "server-proxy";
+          const params = new URLSearchParams(window.location.search);
+          if (params.get("proxy") === "local") {
+            this.proxyUrl = "http://localhost:3001";
+            try {
+              const r = await fetch(`${this.proxyUrl}/health`);
+              if (r.ok) {
+                this.serverInfo = await r.json();
+                this.type = "server-proxy";
+              }
+            } catch {}
           }
           this._updateUI();
           return this.type;
@@ -2254,215 +2883,234 @@
         return fetch(endpoint, options);
       }
 
-      async function searchJira(
-        jiraUrl,
-        jql,
-        creds,
-        {
-          maxResults = 50,
-          fields = "summary,status,assignee,fixVersions,labels,environment",
-          startAt = 0,
-        } = {},
-      ) {
-        const fieldsArray = Array.isArray(fields)
-          ? fields
-          : fields.split(",").map((f) => f.trim());
-
-        // -------------------------------
-        // ✅ SERVER / PROXY MODE (CORS-safe)
-        // -------------------------------
-        if (RuntimeEnv.type === "server-proxy") {
-          const res = await apiFetch("/api/jira/search-jql", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              jiraUrl,
-              auth: buildAuthConfig(creds),
-              jql,
-              startAt,
-              maxResults,
-              fields: fieldsArray,
-            }),
-          });
-
-          if (!res.ok) {
-            throw new Error(
-              `Jira search failed (${res.status}): ${(await res.text()).slice(0, 200)}`,
-            );
-          }
-
-          return res.json();
-        }
-
-        // -------------------------------
-        // ✅ BROWSER MODE (Direct Jira API)
-        // -------------------------------
-        const res = await fetch(`${jiraUrl}/rest/api/3/search/jql`, {
-          method: "POST",
-          headers: {
-            ...buildHeaders(creds),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            jql,
-            startAt,
-            maxResults,
-            fields: fieldsArray,
-          }),
+      async function autoDetectReleaseViaVersions(jiraUrl, projectKey, suffix) {
+        const res = await apiFetch('/api/jira/projectVersions', {
+          params: { jiraUrl, projectKey }
         });
-
         if (!res.ok) {
-          throw new Error(
-            `Jira API ${res.status}: ${(await res.text()).slice(0, 200)}`,
-          );
+          throw new Error(`Failed to fetch versions (${res.status})`);
         }
-
-        return res.json();
-      }
-
-      async function fetchProjectVersions(jiraUrl, project, creds) {
-        if (RuntimeEnv.type !== "server-proxy") {
-          notify("Auto-detect requires proxy mode", "error");
-          return [];
-        }
-
-        const appSuffix = window.XRAY_ENV.appFixVersionEndingWith.toLowerCase();
-
-        const res = await apiFetch("/api/jira/projectVersions", {
-          params: {
-            jiraUrl,
-            project,
-            auth: JSON.stringify(buildAuthConfig(creds)),
-          },
-        });
 
         const versions = await res.json();
         const today = new Date();
 
-        return versions.filter((v) => {
-          if (v.archived) return false;
-          if (v.released) return false;
-          if (!v.name) return false;
+        for (const v of versions) {
+          const start = v.startDate ? new Date(v.startDate) : null;
+          const end = v.releaseDate ? new Date(v.releaseDate) : null;
 
-          const name = v.name.trim();
+          if (
+            start &&
+            end &&
+            today >= start &&
+            today <= end &&
+            v.name &&
+            (!suffix || v.name.endsWith(suffix))
+          ) {
+            return v; // ✅ return full version object
+          }
+        }
 
-          // 1️⃣ Must be a Release
-          if (!name.startsWith("Release ")) return false;
-
-          // 2️⃣ Must end with app (eBus / eSys)
-          if (!name.toLowerCase().endsWith(appSuffix)) return false;
-
-          // 3️⃣ MUST have BOTH dates
-          if (!v.startDate || !v.releaseDate) return false;
-
-          const start = new Date(v.startDate);
-          const end = new Date(v.releaseDate);
-
-          // 4️⃣ MUST be active today
-          if (today < start || today > end) return false;
-
-          return true;
+        return null;
+      }
+      
+      
+      /**
+       * Fetch ALL Jira issues for a JQL using search/jql pagination
+       * (Cloud-safe, uses nextPageToken)
+       */
+      /**
+       * Fetch ALL Jira issues for a JQL using search/jql pagination
+       * (Cloud-safe, uses nextPageToken)
+       */
+     async function searchJiraAll(jiraUrl, jql) {
+        const res = await apiFetch("/api/jira/search", {
+          params: { jiraUrl, jql },
         });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Jira search failed (${res.status}): ${text}`);
+        }
+
+        const data = await res.json();
+        return Array.isArray(data.issues) ? data.issues : [];
+      }
+      /**
+       * v12: Detect active release via Jira search (proxy-safe)
+      */
+      async function detectReleaseViaSearch(jiraUrl, projectKey) {
+        const jql = `
+        project = "${projectKey}"
+        AND fixVersion IS NOT EMPTY
+        AND updated >= startOfDay(-60)
+        ORDER BY updated DESC
+      `
+        .replace(/\s+/g, ' ')
+        .trim();
+
+  const res = await apiFetch("/api/jira/search", {
+    params: { jiraUrl, jql }
+  });
+
+  if (!res.ok) {
+    throw new Error(`Release detection search failed (${res.status})`);
+  }
+
+  const data = await res.json();
+  const issues = data.issues || [];
+  if (!issues.length) return null;
+
+  const versionMap = new Map();
+
+  for (const issue of issues) {
+    const updated = issue.fields?.updated;
+    for (const v of issue.fields?.fixVersions || []) {
+      const entry = versionMap.get(v.name) || {
+        name: v.name,
+        count: 0,
+        latestUpdated: updated
+      };
+      entry.count++;
+      if (updated > entry.latestUpdated) entry.latestUpdated = updated;
+      versionMap.set(v.name, entry);
+    }
+  }
+
+  const suffix =
+    (window.XRAY_ENV?.releaseSuffix || "").toLowerCase();
+
+  return [...versionMap.values()]
+    .filter(v => suffix ? v.name.toLowerCase().includes(suffix) : true)
+    .sort((a, b) => b.latestUpdated.localeCompare(a.latestUpdated))[0] || null;
+}
+      
+      async function fetchProjectVersions(jiraUrl, project, creds) {
+        if (RuntimeEnv.type === "server-proxy") {
+          const res = await apiFetch("/api/jira/search", {
+            params: {
+              jiraUrl,
+              jql: `project="${project}" AND fixVersion ~ "Release" ORDER BY fixVersion DESC`,
+              auth: JSON.stringify(buildAuthConfig(creds)),
+            },
+          });
+          const data = await res.json();
+
+          const seen = new Set();
+          (data.issues || []).forEach((issue) =>
+            (issue.fields?.fixVersions || []).forEach((v) => seen.add(v.name)),
+          );
+
+          return Array.from(seen).sort().reverse();
+        }
+
+        // non-proxy path unchanged
       }
 
-      async function getXrayCloudToken(creds) {
-        const now = Date.now();
-        if (
-          xrayTokenCache.token &&
-          xrayTokenCache.expiresAt > now + 5 * 60 * 1000
-        )
-          return xrayTokenCache.token;
-        const body = JSON.stringify({
-          client_id: creds.xrayClientId,
-          client_secret: creds.xrayClientSecret,
+      async function fetchXrayCloudGraphQL(query, variables = {}) {
+        const res = await apiFetch("/api/xray/graphql", {
+          method: "POST",
+          body: JSON.stringify({ query, variables }),
         });
-        let r;
-        if (RuntimeEnv.type === "server-proxy")
-          r = await apiFetch("/api/xray/authenticate", {
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Xray GraphQL failed (${res.status}): ${text}`);
+        }
+
+        return res.json();
+      }
+      
+      async function fetchXrayCloudTestRuns(issueId) {
+        if (!issueId || typeof issueId !== "string") {
+          throw new Error("Invalid Jira issueId for Xray Cloud fetch");
+        }
+
+        const query = `
+          query GetTestExecutionRuns($issueId: String!, $limit: Int!, $start: Int!) {
+            getTestExecution(issueId: $issueId) {
+              testRuns(limit: $limit, start: $start) {
+                total
+                results {
+                  id
+                  status { name }
+                  unstructured
+                  assigneeId
+                  defects
+                  test {
+                    jira(fields: ["key", "summary"])
+                    testType { name }
+                  }
+                  steps {
+                    status { name }
+                    action
+                    result
+                  }
+                  evidence { filename }
+                }
+              }
+            }
+          }
+        `;
+
+        const allRuns = [];
+        let offset = 0;
+        const limit = 100;
+
+        while (true) {
+          const res = await apiFetch("/api/xray/graphql", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body,
+            body: JSON.stringify({ query, variables: { issueId, limit, start: offset } }),
           });
-        else
-          r = await fetch(
-            "https://xray.cloud.getxray.app/api/v1/authenticate",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body,
-            },
-          );
-        if (!r.ok) throw new Error("Xray Cloud authentication failed");
-        const data = await r.json();
-        const token = data.token || data;
-        xrayTokenCache.token = token;
-        xrayTokenCache.expiresAt = now + 60 * 60 * 1000;
-        return token;
-      }
 
-      async function fetchXrayCloudTestRuns(execKey, creds) {
-        const token = await getXrayCloudToken(creds);
-        let allTestRuns = [];
-        let cursor = null;
-        let hasNextPage = true;
-        let pageCount = 0;
-        const maxPages = 10;
-        while (hasNextPage && pageCount < maxPages) {
-          const afterParam = cursor ? `, after: "${cursor}"` : "";
-          const gql = `{ getTestExecution(jiraKey: "${execKey}") { testRuns(first: 100${afterParam}) { pageInfo { hasNextPage endCursor } results { id status { name } comment test { issueId jira(fields: ["key", "summary"]) } startedOn finishedOn assigneeId unstructured evidence { filename downloadLink } steps { status { name } result } } } } }`;
-          const authHeader = `Bearer ${token}`;
-          let res;
-          if (RuntimeEnv.type === "server-proxy")
-            res = await apiFetch("/api/xray/graphql", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: authHeader,
-              },
-              body: JSON.stringify({ query: gql }),
-            });
-          else
-            res = await fetch("https://xray.cloud.getxray.app/api/v2/graphql", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: authHeader,
-              },
-              body: JSON.stringify({ query: gql }),
-            });
-          const d = await res.json();
-          const testRunsData = d?.data?.getTestExecution?.testRuns;
-          if (!testRunsData) break;
-          const runs = testRunsData.results || [];
-          allTestRuns.push(...runs);
-          hasNextPage = testRunsData.pageInfo?.hasNextPage || false;
-          cursor = testRunsData.pageInfo?.endCursor || null;
-          pageCount++;
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`Xray Cloud GraphQL failed (${res.status}): ${text}`);
+          }
+
+          const json = await res.json();
+          const node = json?.data?.getTestExecution?.testRuns;
+          if (!node?.results?.length) break;
+
+          allRuns.push(...node.results);
+          if (allRuns.length >= node.total) break;
+          offset += limit;
+          await new Promise(r => setTimeout(r, 300));
         }
-        return allTestRuns.map((run) => ({
-          id: run.id,
-          key: run.test?.jira?.key || "",
-          summary: run.test?.jira?.summary || "",
-          status: run.status?.name || "TODO",
-          assignee: run.assigneeId || "",
-          environment: "",
-          browser: "",
-          started: run.startedOn,
-          finished: run.finishedOn,
-          error: run.unstructured || null,
-          steps: (run.steps || []).map((s, i) => ({
-            index: i + 1,
-            action: s.result || "",
-            expected: "",
-            status: s.status?.name || "TODO",
-            comment: "",
-          })),
-          evidence: (run.evidence || []).map((e) => e.filename),
-          labels: [],
-        }));
-      }
 
-      // --- Raven pagination (Server/DC) ---
+        return allRuns.map(run => {
+          const envs = run?.xrayFields?.environments || [];
+          const testType = run?.test?.testType?.name || "Unknown";
+
+          return {
+            id: run.id,
+            key: run.test?.jira?.key || "",
+            summary: run.test?.jira?.summary || "",
+            status: run.status?.name || "TODO",
+            assignee: run.assigneeId || "",
+            environment: envs[0] || "",
+            environments: envs,
+            testType,
+            browser: "",
+            started: null,
+            finished: null,
+            error: run.unstructured || null,
+            defects: run.defects || [],
+            steps: (run.steps || []).map((s, i) => ({
+              index: i + 1,
+              action: s.action || s.result || "",
+              expected: "",
+              status: s.status?.name || "TODO",
+              comment: "",
+            })),
+            evidence: (run.evidence || []).map(e => e.filename),
+            labels: [],
+          };
+        });
+      }
+    
+      
+    // --- Raven pagination (Server/DC) ---
       async function fetchRavenTestRunsPaginated(jiraUrl, execKey, creds) {
         let allRuns = [];
         let start = 0;
@@ -2532,16 +3180,25 @@
         });
       }
 
-      async function fetchTestRuns(jiraUrl, execKey, xrayType, creds) {
-        try {
-          if (xrayType === "cloud")
-            return await fetchXrayCloudTestRuns(execKey, creds);
-          else
-            return await fetchRavenTestRunsPaginated(jiraUrl, execKey, creds);
-        } catch (e) {
-          console.error("fetchTestRuns error", e);
+      async function fetchTestRuns(jiraUrl, exec, xrayType, creds) {
+        // ✅ HARD GUARD
+        if (!exec || typeof exec !== "object") {
+          console.warn("Skipping Xray fetch – invalid execution:", exec);
           return [];
         }
+
+        if (xrayType === "cloud") {
+          if (!exec.issueId) {
+            console.warn("Missing issueId for Xray Cloud execution:", exec);
+            return [];
+          }
+
+          // ✅ Xray Cloud REQUIRES issueId
+          return await fetchXrayCloudTestRuns(exec.issueId);
+        }
+
+        // ✅ Server / Data Center still uses the execution KEY
+        return await fetchRavenTestRunsPaginated(jiraUrl, exec.key, creds);
       }
 
       // --- Config Persistence (v10) ---
@@ -2799,77 +3456,255 @@
           `<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Test Key</th><th>Summary</th><th>Status Changes</th><th>History</th></tr></thead><tbody>${flakyTests.map((t) => `<tr><td class="test-key">${escapeHtml(t.key)}</td><td class="test-summary">${escapeHtml(t.summary)}</td><td><span class="status-badge skip">${t.changes} changes</span></td><td style="font-size:11px;color:var(--text3)">${escapeHtml(t.statusHistory)}</td></tr>`).join("")}</tbody></table></div>`;
       }
 
-      // --- Label Analytics (v9) ---
+      // --- Label Analytics (v10 - Enhanced) ---
       function renderLabelAnalytics() {
-        const runs = state.testRuns;
-        if (!runs.length) {
-          document.getElementById("labelStatsBody").innerHTML =
-            `<div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-title">No data loaded</div></div>`;
+        const body = document.getElementById("labelStatsBody");
+        if (!body) return;
+
+        if (!state.executions || state.executions.length === 0) {
+          body.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">🏷️</div>
+              <div class="empty-title">No data loaded</div>
+              <div class="empty-sub">Fetch test executions to see label analytics</div>
+            </div>
+          `;
           return;
         }
-        const labelFilterMode =
-          document.getElementById("labelFilter")?.value || "all";
-        let filteredRuns = runs;
-        if (labelFilterMode === "automation")
-          filteredRuns = runs.filter((r) =>
-            (r.labels || []).some((l) =>
-              l.toLowerCase().includes("automation"),
-            ),
-          );
-        else if (labelFilterMode === "manual")
-          filteredRuns = runs.filter((r) =>
-            (r.labels || []).some((l) => l.toLowerCase().includes("manual")),
-          );
+
+        // Build label map with test-level data
         const labelMap = new Map();
-        filteredRuns.forEach((run) => {
-          const labels = run.labels || [];
-          if (labels.length === 0) labels.push("Unlabeled");
-          labels.forEach((label) => {
-            if (!labelMap.has(label))
+
+        // First pass: gather executions by label
+        state.executions.forEach(exec => {
+          const labels = Array.isArray(exec.labels) && exec.labels.length
+            ? exec.labels
+            : ["Unlabeled"];
+          const execStarted = new Date(exec.started || exec.updated || 0);
+
+          labels.forEach(label => {
+            if (!labelMap.has(label)) {
               labelMap.set(label, {
-                total: 0,
-                pass: 0,
-                fail: 0,
-                skip: 0,
-                blocked: 0,
+                executions: [],
+                tests: new Map(),
+                latestExecution: null
               });
+            }
+            labelMap.get(label).executions.push(exec);
+
+            // Track latest execution
             const entry = labelMap.get(label);
-            entry.total++;
-            const sc = statusClass(run.status);
-            if (sc === "pass") entry.pass++;
-            else if (sc === "fail") entry.fail++;
-            else if (sc === "skip") entry.skip++;
-            else if (run.status === "BLOCKED") entry.blocked++;
+            if (!entry.latestExecution || execStarted > new Date(entry.latestExecution.started || 0)) {
+              entry.latestExecution = exec;
+            }
           });
         });
+
+        // Second pass: gather test runs by label
+        state.testRuns.forEach(run => {
+          const labels = Array.isArray(run.labels) && run.labels.length
+            ? run.labels
+            : ["Unlabeled"];
+
+          labels.forEach(label => {
+            if (labelMap.has(label)) {
+              const entry = labelMap.get(label);
+              if (!entry.tests.has(run.key)) {
+                entry.tests.set(run.key, {
+                  ...run,
+                  latestRunDate: run.started
+                });
+              }
+            }
+          });
+        });
+
+        // Convert to sorted array
         const labelStats = Array.from(labelMap.entries())
-          .map(([label, stats]) => ({
+          .map(([label, data]) => ({
             label,
-            total: stats.total,
-            pass: stats.pass,
-            fail: stats.fail,
-            skip: stats.skip,
-            blocked: stats.blocked,
-            passPct: stats.total
-              ? ((stats.pass / stats.total) * 100).toFixed(1)
-              : 0,
-            failPct: stats.total
-              ? ((stats.fail / stats.total) * 100).toFixed(1)
-              : 0,
+            executions: data.executions,
+            execCount: data.executions.length,
+            tests: Array.from(data.tests.values()),
+            testCount: data.tests.size,
+            latestExecution: data.latestExecution,
+            latestRunDate: data.latestExecution?.started || data.latestExecution?.updated || null
           }))
-          .sort((a, b) => a.label.localeCompare(b.label));
+          .sort((a, b) => b.execCount - a.execCount);
+
         if (labelStats.length === 0) {
-          document.getElementById("labelStatsBody").innerHTML =
-            `<div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-title">No labels found</div></div>`;
+          body.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">🏷️</div>
+              <div class="empty-title">No labels found</div>
+            </div>
+          `;
           return;
         }
-        let html = `<table class="label-stats-table"><thead><tr><th>Label</th><th>Total Tests</th><th>Passed</th><th>Pass %</th><th>Failed</th><th>Fail %</th><th>Skipped</th><th>Blocked</th></tr></thead><tbody>`;
-        labelStats.forEach((stat) => {
-          html += `<tr><td><span class="env-chip">${escapeHtml(stat.label)}</span></td><td style="font-family:'Space Mono',monospace">${stat.total}</td><td style="color:var(--pass)">${stat.pass}</td><td>${stat.passPct}%</td><td style="color:var(--fail)">${stat.fail}</td><td>${stat.failPct}%</td><td style="color:var(--skip)">${stat.skip}</td><td style="color:var(--blocked)">${stat.blocked}</td></tr>`;
-        });
-        html += `</tbody></table>`;
-        document.getElementById("labelStatsBody").innerHTML = html;
+
+        // Render expandable label sections
+        body.innerHTML = labelStats.map(stat => {
+          const latestExecs = stat.executions
+            .sort((a, b) => new Date(b.started || b.updated || 0) - new Date(a.started || a.updated || 0));
+
+          const latestExec = latestExecs[0] || null;
+          const latestExecTestRuns = latestExec
+            ? stat.tests.filter(t => {
+                const execStart = new Date(latestExec.started || latestExec.updated || 0).getTime();
+                const runStart = new Date(t.started || 0).getTime();
+                return Math.abs(runStart - execStart) < 86400000; // Within 24h
+              })
+            : stat.tests;
+
+          const pass = latestExecTestRuns.filter(t => statusClass(t.status) === "pass").length;
+          const fail = latestExecTestRuns.filter(t => statusClass(t.status) === "fail").length;
+          const skip = latestExecTestRuns.filter(t => statusClass(t.status) === "skip").length;
+          const blocked = latestExecTestRuns.filter(t => t.status === "BLOCKED").length;
+
+          return `
+            <div class="label-section" data-label="${escapeHtml(stat.label)}">
+              <div class="label-row label-expandable" onclick="toggleLabelSection('${escapeHtml(stat.label)}')">
+                <div class="label-name">
+                  <span class="label-expand-icon" id="expandIcon-${escapeHtml(stat.label)}">▶</span>
+                  <span class="env-chip">${escapeHtml(stat.label)}</span>
+                </div>
+                <div class="label-counts">
+                  <span>${stat.execCount} exec${stat.execCount !== 1 ? 's' : ''}</span>
+                  <span>${stat.testCount} test${stat.testCount !== 1 ? 's' : ''}</span>
+                </div>
+                <div class="label-status-bar">
+                  ${pass ? `<span class="label-status-chip pass">✓ ${pass}</span>` : ''}
+                  ${fail ? `<span class="label-status-chip fail">✕ ${fail}</span>` : ''}
+                  ${skip ? `<span class="label-status-chip skip">⏭ ${skip}</span>` : ''}
+                  ${blocked ? `<span class="label-status-chip blocked">⊘ ${blocked}</span>` : ''}
+                </div>
+              </div>
+              <div class="label-tests-section" id="section-${escapeHtml(stat.label)}">
+                <div class="label-tests-header">
+                  <input
+                    class="label-tests-search"
+                    placeholder="🔍 Filter tests..."
+                    oninput="filterLabelTests('${escapeHtml(stat.label)}', this.value)"
+                  />
+                </div>
+                <table class="label-tests-table">
+                  <thead>
+                    <tr>
+                      <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'key')">TEST KEY ↕</th>
+                      <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'summary')">SUMMARY ↕</th>
+                      <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'status')">STATUS ↕</th>
+                      <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'environment')">ENVIRONMENT ↕</th>
+                      <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'started')">LAST RUN ↕</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tests-body-${escapeHtml(stat.label)}">
+                    ${renderLabelTestRows(latestExecTestRuns, stat.label)}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        }).join("");
       }
+
+      function renderLabelTestRows(tests, label) {
+        const jiraBase = document.getElementById("jiraUrl")?.value || '';
+        return tests.map(test => {
+          const sc = statusClass(test.status);
+          return `
+            <tr>
+              <td>
+                <a class="label-test-key" href="${jiraBase}/browse/${test.key}" target="_blank" rel="noopener">
+                  ${escapeHtml(test.key)}
+                </a>
+              </td>
+              <td class="test-summary" title="${escapeHtml(test.summary)}">${escapeHtml(test.summary)}</td>
+              <td><span class="status-badge ${sc}">${test.status}</span></td>
+              <td>${escapeHtml(test.environment || '—')}</td>
+              <td class="duration-val">${fmt(test.started)}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function toggleLabelSection(label) {
+        const section = document.getElementById(`section-${label}`);
+        const icon = document.getElementById(`expandIcon-${label}`);
+        if (!section) return;
+
+        const isOpen = section.classList.contains("open");
+
+        // Close all sections first (single-expand behavior)
+        document.querySelectorAll(".label-tests-section").forEach(s => s.classList.remove("open"));
+        document.querySelectorAll(".label-expand-icon").forEach(i => {
+          i.classList.remove("expanded");
+          i.textContent = "▶";
+        });
+
+        // Open clicked section if it was closed
+        if (!isOpen) {
+          section.classList.add("open");
+          icon.classList.add("expanded");
+          icon.textContent = "▼";
+        }
+      }
+
+      function filterLabelTests(label, searchTerm) {
+        const tbody = document.getElementById(`tests-body-${label}`);
+        if (!tbody) return;
+
+        const search = searchTerm.toLowerCase();
+        const allRows = tbody.querySelectorAll("tr");
+
+        allRows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(search) ? "" : "none";
+        });
+      }
+
+      function sortLabelTests(label, field) {
+        const tbody = document.getElementById(`tests-body-${label}`);
+        if (!tbody) return;
+
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        const currentSort = tbody.dataset.sortField;
+        const currentDir = tbody.dataset.sortDir || "asc";
+        const newDir = currentSort === field && currentDir === "asc" ? "desc" : "asc";
+
+        rows.sort((a, b) => {
+          let aVal, bVal;
+
+          if (field === "key") {
+            aVal = a.querySelector(".label-test-key")?.textContent || "";
+            bVal = b.querySelector(".label-test-key")?.textContent || "";
+          } else if (field === "status") {
+            aVal = a.querySelector(".status-badge")?.className || "";
+            bVal = b.querySelector(".status-badge")?.className || "";
+          } else {
+            aVal = a.cells[field === "summary" ? 1 : field === "environment" ? 2 : field === "started" ? 3 : 0]?.textContent || "";
+            bVal = b.cells[field === "summary" ? 1 : field === "environment" ? 2 : field === "started" ? 3 : 0]?.textContent || "";
+          }
+
+          const cmp = aVal.localeCompare(bVal);
+          return newDir === "asc" ? cmp : -cmp;
+        });
+
+        tbody.dataset.sortField = field;
+        tbody.dataset.sortDir = newDir;
+
+        rows.forEach(row => tbody.appendChild(row));
+      }
+
+      function filterLabels() {
+        const search = document.getElementById("labelSearchInput")?.value.toLowerCase() || "";
+        const sections = document.querySelectorAll(".label-section");
+
+        sections.forEach(section => {
+          const label = section.dataset.label || "";
+          section.style.display = label.toLowerCase().includes(search) ? "" : "none";
+        });
+      }
+
       function exportLabelCSV() {
         const runs = state.testRuns;
         if (!runs.length) {
@@ -2914,7 +3749,7 @@
         const rows = [
           [
             "Label",
-            "Total Tests",
+            "Total Test Runs",
             "Passed",
             "Pass %",
             "Failed",
@@ -3014,13 +3849,54 @@
           },
         });
       }
-
+      
       // --- Core rendering functions (overview, metrics, table, etc.) ---
-      function renderAll() {
+function renderAll() {
+        if (!state.isReady) return;
+        // Always update shared content
         renderMetrics();
         renderDonut();
-        renderExecSummary();
+        populateEnvFilter();
+        populateBrowserFilter();
+        populateLabelChips();
+        renderExecSummary(); 
         renderMainTable();
+        renderExecStats();
+        populateExecFilters();
+
+
+        // ✅ Render only what matches the active tab
+        switch (state.activeTab) {
+          case "failures":
+            renderFailures();
+            break;
+          case "environments":
+            renderEnvironments();
+            break;
+          case "trends":
+            renderTrends();
+            renderHistoricalFlaky();
+            break;
+          case "executions":
+            // Initialize filtered list on first render
+            if (execState.filtered.length === 0 && state.executions.length > 0) {
+              execState.filtered = [...state.executions];
+              sortExecData();
+            }
+            renderExecTable();
+            renderExecPagination();
+            break;
+          case "labels":
+            renderLabelAnalytics();
+            break;
+          case "compare":
+            initCompareTab();
+            break;
+          default:
+            // overview
+            break;
+        }
+
         document.getElementById("chartSection").style.display = "grid";
         document.getElementById("summaryCard").style.display = "block";
         document.getElementById("refreshBtn").style.display = "inline-flex";
@@ -3028,33 +3904,7 @@
         document.getElementById("topLastRefresh").textContent =
           `refreshed ${fmt(new Date())}`;
       }
-      function filteredRuns() {
-        const search = (
-          document.getElementById("searchMain")?.value || ""
-        ).toLowerCase();
-        const statusF = document.getElementById("statusFilter")?.value || "";
-        const envF = document.getElementById("envFilter")?.value || "";
-        const browserF = document.getElementById("browserFilter")?.value || "";
-        return state.testRuns.filter((r) => {
-          if (
-            search &&
-            !`${r.key} ${r.summary} ${r.assignee}`
-              .toLowerCase()
-              .includes(search)
-          )
-            return false;
-          if (statusF && statusClass(r.status) !== statusClass(statusF))
-            return false;
-          if (envF && r.environment !== envF) return false;
-          if (browserF && r.browser !== browserF) return false;
-          if (state.activeLabels.size > 0) {
-            const rLabels = r.labels || [];
-            if (![...state.activeLabels].some((l) => rLabels.includes(l)))
-              return false;
-          }
-          return true;
-        });
-      }
+
       function filterTable() {
         state.currentPage = 1;
         renderMetrics();
@@ -3074,93 +3924,196 @@
         }
         renderMainTable();
       }
-      function renderMetrics() {
-        const runs = filteredRuns();
-        const total = runs.length;
-        const pass = runs.filter(
-          (r) => statusClass(r.status) === "pass",
-        ).length;
-        const fail = runs.filter(
-          (r) => statusClass(r.status) === "fail",
-        ).length;
-        const skip = runs.filter(
-          (r) => statusClass(r.status) === "skip",
-        ).length;
-        const blocked = runs.filter((r) => r.status === "BLOCKED").length;
-        const passRate = total ? Math.round((pass / total) * 100) : 0;
-        const cards = [
-          {
-            label: "TOTAL TESTS",
-            value: total,
-            sub: `${state.executions.length} execution(s)`,
-            color: "var(--info)",
-            bar: 100,
-            barColor: "var(--info)",
-            cls: "",
-          },
-          {
-            label: "PASSED",
-            value: pass,
-            sub: `${passRate}% pass rate`,
-            color: "var(--pass)",
-            bar: passRate,
-            barColor: "var(--pass)",
-            cls: "pass-card",
-          },
-          {
-            label: "FAILED",
-            value: fail,
-            sub: `${total ? Math.round((fail / total) * 100) : 0}% fail rate`,
-            color: "var(--fail)",
-            bar: total ? Math.round((fail / total) * 100) : 0,
-            barColor: "var(--fail)",
-            cls: "fail-card",
-          },
-          {
-            label: "SKIPPED",
-            value: skip,
-            sub: `${total ? Math.round((skip / total) * 100) : 0}%`,
-            color: "var(--skip)",
-            bar: total ? Math.round((skip / total) * 100) : 0,
-            barColor: "var(--skip)",
-            cls: "",
-          },
-          {
-            label: "BLOCKED",
-            value: blocked,
-            sub: `${total ? Math.round((blocked / total) * 100) : 0}%`,
-            color: "var(--blocked)",
-            bar: total ? Math.round((blocked / total) * 100) : 0,
-            barColor: "var(--blocked)",
-            cls: "",
-          },
-          {
-            label: "PASS RATE",
-            value: `${passRate}%`,
-            sub: fail === 0 ? "✓ All clear" : `${fail} need attention`,
-            color:
-              passRate >= 90
-                ? "var(--pass)"
-                : passRate >= 75
-                  ? "var(--skip)"
-                  : "var(--fail)",
-            bar: passRate,
-            barColor:
-              passRate >= 90
-                ? "var(--pass)"
-                : passRate >= 75
-                  ? "var(--skip)"
-                  : "var(--fail)",
-            cls: "",
-          },
-        ];
-        document.getElementById("metricsGrid").innerHTML = cards
-          .map(
-            (c) =>
-              `<div class="metric-card ${c.cls} fade-in"><div class="metric-label">${escapeHtml(c.label)}</div><div class="metric-value" style="color:${c.color}">${escapeHtml(String(c.value))}</div><div class="metric-sub">${escapeHtml(c.sub)}</div><div class="metric-bar"><div class="metric-bar-fill" style="width:${c.bar}%;background:${c.barColor}"></div></div></div>`,
-          )
-          .join("");
+
+      function getFilteredExecutionKeys() {
+        const envF = document.getElementById("envFilter")?.value || "";
+        const activeLabels = state.activeLabels || new Set();
+
+        return new Set(
+          state.executions
+            .filter(exec => {
+              // ✅ Server Env filter
+              if (envF && exec.environment !== envF) return false;
+
+              // ✅ Label filter (execution-level, Jira parity)
+              if (activeLabels.size > 0) {
+                const execLabels = exec.labels || [];
+                const matches = [...activeLabels].some(l =>
+                  execLabels.includes(l)
+                );
+                if (!matches) return false;
+              }
+
+              return true;
+            })
+            .map(exec => exec.key)
+        );
       }
+
+      
+      function filteredRuns() {
+        const allowedExecKeys = getFilteredExecutionKeys();
+
+        const search =
+          (document.getElementById("searchMain")?.value || "").toLowerCase();
+        const statusF =
+          document.getElementById("statusFilter")?.value || "";
+        const browserF =
+          document.getElementById("browserFilter")?.value || "";
+        const testTypeFilter =
+          document.getElementById("labelFilter")?.value || "all";
+
+        return state.testRuns.filter(r => {
+          // ✅ execution-level filter FIRST
+          if (!allowedExecKeys.has(r.execKey)) return false;
+
+          // ✅ run-level filters
+          if (
+            search &&
+            !`${r.key} ${r.summary} ${r.assignee}`.toLowerCase().includes(search)
+          )
+            return false;
+
+          if (statusF && statusClass(r.status) !== statusClass(statusF))
+            return false;
+
+          if (browserF && r.browser !== browserF) return false;
+
+          // ✅ Test Type filter (Cucumber / Manual)
+          if (testTypeFilter !== "all" && r.testType !== testTypeFilter)
+            return false;
+
+          return true;
+        });
+      }
+
+      /**
+       * ✅ Global Overview metrics renderer
+       * Must be defined BEFORE renderAll() is ever called
+       */
+        function renderMetrics() {
+          const runs = filteredRuns();
+          const executions = filteredExecutions();
+
+          const totalExecutions = executions.length;
+          const totalRuns = runs.length;
+
+          const passRuns = runs.filter(r => statusClass(r.status) === "pass").length;
+          const failRuns = runs.filter(r => statusClass(r.status) === "fail").length;
+          const skipRuns = runs.filter(r => statusClass(r.status) === "skip").length;
+          const blockedRuns = runs.filter(r => r.status === "BLOCKED").length;
+
+          const passRate = totalRuns
+            ? Math.round((passRuns / totalRuns) * 100)
+            : 0;
+
+          const cards = [
+            {
+              label: "TEST EXECUTIONS",
+              value: totalExecutions,
+              sub: "Jira executions",
+              color: "var(--info)",
+              bar: 100,
+              barColor: "var(--info)",
+              cls: ""
+            },
+            {
+              label: "TEST RUNS",
+              value: totalRuns,
+              sub: `${totalExecutions} executions`,
+              color: "var(--accent)",
+              bar: 100,
+              barColor: "var(--accent)",
+              cls: ""
+            },
+            {
+              label: "PASSED",
+              value: passRuns,
+              sub: totalRuns ? `${passRate}% of test runs` : "—",
+              color: "var(--pass)",
+              bar: passRate,
+              barColor: "var(--pass)",
+              cls: "pass-card"
+            },
+            {
+              label: "FAILED",
+              value: failRuns,
+              sub: totalRuns
+                ? `${Math.round((failRuns / totalRuns) * 100)}%`
+                : "—",
+              color: "var(--fail)",
+              bar: totalRuns ? Math.round((failRuns / totalRuns) * 100) : 0,
+              barColor: "var(--fail)",
+              cls: "fail-card"
+            },
+            {
+              label: "SKIPPED",
+              value: skipRuns,
+              sub: totalRuns
+                ? `${Math.round((skipRuns / totalRuns) * 100)}%`
+                : "—",
+              color: "var(--skip)",
+              bar: totalRuns ? Math.round((skipRuns / totalRuns) * 100) : 0,
+              barColor: "var(--skip)",
+              cls: ""
+            },
+            {
+              label: "BLOCKED",
+              value: blockedRuns,
+              sub: totalRuns
+                ? `${Math.round((blockedRuns / totalRuns) * 100)}%`
+                : "—",
+              color: "var(--blocked)",
+              bar: totalRuns ? Math.round((blockedRuns / totalRuns) * 100) : 0,
+              barColor: "var(--blocked)",
+              cls: ""
+            },
+            {
+              label: "PASS RATE",
+              value: `${passRate}%`,
+              sub:
+                failRuns === 0
+                  ? "✓ All clear"
+                  : `${failRuns} failing runs`,
+              color:
+                passRate >= 90
+                  ? "var(--pass)"
+                  : passRate >= 75
+                  ? "var(--skip)"
+                  : "var(--fail)",
+              bar: passRate,
+              barColor:
+                passRate >= 90
+                  ? "var(--pass)"
+                  : passRate >= 75
+                  ? "var(--skip)"
+                  : "var(--fail)",
+              cls: ""
+            }
+          ];
+
+          const grid = document.getElementById("metricsGrid");
+          if (!grid) return;
+
+          grid.innerHTML = cards
+            .map(c => `
+              <div class="metric-card ${c.cls}">
+                <div class="metric-label">${escapeHtml(c.label)}</div>
+                <div class="metric-value" style="color:${c.color}">
+                  ${escapeHtml(String(c.value))}
+                </div>
+                <div class="metric-sub">${escapeHtml(c.sub)}</div>
+                <div class="metric-bar">
+                  <div
+                    class="metric-bar-fill"
+                    style="width:${c.bar}%;background:${c.barColor}">
+                  </div>
+                </div>
+              </div>
+            `)
+            .join("");
+        }
+      
       function renderDonut() {
         const runs = filteredRuns();
         const counts = {
@@ -3213,7 +4166,12 @@
           .map((r) => new Date(r.finished));
         const minStart = starts.length ? new Date(Math.min(...starts)) : null;
         const maxEnd = ends.length ? new Date(Math.max(...ends)) : null;
-        const totalDurMs = minStart && maxEnd ? maxEnd - minStart : 0;
+        // const totalDurMs = minStart && maxEnd ? maxEnd - minStart : 0;
+        const totalDurMs = runs.reduce(
+          (sum, r) => sum + (r.durationMs || 0),
+          0,
+        );
+
         const totalDurStr = totalDurMs
           ? `${Math.floor(totalDurMs / 60000)}m ${Math.floor((totalDurMs % 60000) / 1000)}s`
           : "—";
@@ -3221,7 +4179,7 @@
         const browserSet = new Set(runs.map((r) => r.browser).filter(Boolean));
         const allLabels = new Set(runs.flatMap((r) => r.labels || []));
         document.getElementById("execSummaryBody").innerHTML =
-          `<div class="meta-grid" style="gap:14px"><div class="meta-item"><div class="meta-k">Project / Fix Version</div><div class="meta-v">${escapeHtml(document.getElementById("projectKey").value || "DEMO")} — ${escapeHtml(state.fixVersion)}</div></div><div class="meta-item"><div class="meta-k">Test Executions</div><div class="meta-v">${state.executions.length}</div></div><div class="meta-item"><div class="meta-k">Start Time</div><div class="meta-v">${fmt(minStart)}</div></div><div class="meta-item"><div class="meta-k">End Time</div><div class="meta-v">${fmt(maxEnd)}</div></div><div class="meta-item"><div class="meta-k">Total Duration</div><div class="meta-v">${escapeHtml(totalDurStr)}</div></div><div class="meta-item"><div class="meta-k">Server Environments</div><div class="meta-v">${escapeHtml([...envSet].join(", ") || "—")}</div></div><div class="meta-item"><div class="meta-k">Browsers</div><div class="meta-v">${escapeHtml([...browserSet].join(", ") || "—")}</div></div><div class="meta-item"><div class="meta-k">Labels</div><div class="meta-v">${escapeHtml([...allLabels].join(", ") || "—")}</div></div></div>`;
+          `<div class="meta-grid" style="gap:14px"><div class="meta-item"><div class="meta-k">Project / Fix Version</div><div class="meta-v">${escapeHtml(document.getElementById("projectKey").value || "DEMO")} — ${escapeHtml(state.fixVersion)}</div></div><div class="meta-item"><div class="meta-k">Test Executions</div><div class="meta-v">${getJiraExecutionCount()}</div></div><div class="meta-item"><div class="meta-k">Start Time</div><div class="meta-v">${fmt(minStart)}</div></div><div class="meta-item"><div class="meta-k">End Time</div><div class="meta-v">${fmt(maxEnd)}</div></div><div class="meta-item"><div class="meta-k">Total Duration</div><div class="meta-v">${escapeHtml(totalDurStr)}</div></div><div class="meta-item"><div class="meta-k">Server Environments</div><div class="meta-v">${escapeHtml([...envSet].join(", ") || "—")}</div></div><div class="meta-item"><div class="meta-k">Browsers</div><div class="meta-v">${escapeHtml([...browserSet].join(", ") || "—")}</div></div><div class="meta-item"><div class="meta-k">Labels</div><div class="meta-v">${escapeHtml([...allLabels].join(", ") || "—")}</div></div></div>`;
       }
       function renderMainTable() {
         let runs = filteredRuns();
@@ -3407,36 +4365,314 @@
           : `<div style="color:var(--pass);font-size:13px;padding:8px 0">✓ No flaky tests detected</div>`;
         renderPassRateLineChart();
       }
-      function renderExecTable() {
-        const tbody = document.getElementById("execTableBody");
-        if (!tbody) return;
-        tbody.innerHTML =
-          state.executions
-            .map((e) => {
-              const runs = state.testRuns.filter((r) => r.execKey === e.key);
-              const pass = runs.filter(
-                (r) => statusClass(r.status) === "pass",
-              ).length;
-              const fail = runs.filter(
-                (r) => statusClass(r.status) === "fail",
-              ).length;
-              const skip = runs.filter(
-                (r) => statusClass(r.status) === "skip",
-              ).length;
-              return `<tr><td><span class="test-key">${escapeHtml(e.key)}</span></td><td><div class="test-summary" title="${escapeHtml(e.summary)}">${escapeHtml(e.summary)}</div></td><td><span class="pill">${escapeHtml(e.fixVersion)}</span></td><td><span class="env-chip">${escapeHtml(e.environment || "—")}</span></td><td><span style="font-size:10px;color:var(--text3)">${escapeHtml((e.labels || []).join(", ") || "—")}</span></td><td style="font-family:'Space Mono',monospace;font-weight:700">${runs.length}</td><td style="color:var(--pass);font-family:'Space Mono',monospace">${pass}</td><td style="color:var(--fail);font-family:'Space Mono',monospace">${fail}</td><td style="color:var(--skip);font-family:'Space Mono',monospace">${skip}</td><td><span class="duration-val">${fmt(e.started)}</span></td><td style="font-size:12px">${escapeHtml(e.assignee || "—")}</td></tr>`;
-            })
-            .join("") ||
-          `<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No executions loaded</div></div></td></tr>`;
-      }
+      
+      // --- Exec Table state for filtering/sorting/pagination ---
+      window.execState = {
+        filtered: [],
+        sortField: "started",
+        sortDir: "desc",
+        page: 1,
+        pageSize: 20
+      };
+
+      function renderExecStats() {
+          if (!state.executions.length) return;
+
+          const runs = state.testRuns;
+          const pass = runs.filter(r => statusClass(r.status) === "pass").length;
+          const fail = runs.filter(r => statusClass(r.status) === "fail").length;
+          const skip = runs.filter(r => statusClass(r.status) === "skip").length;
+
+          document.getElementById("execStatTotal").textContent = state.executions.length;
+          document.getElementById("execStatTests").textContent = runs.length;
+          document.getElementById("execStatPass").textContent = pass;
+          document.getElementById("execStatFail").textContent = fail;
+          document.getElementById("execStatSkip").textContent = skip;
+        }
+
+        function populateExecFilters() {
+          // Environment filter
+          const envSel = document.getElementById("execEnvFilter");
+          const envs = [...new Set(state.executions.map(e => e.environment).filter(Boolean))].sort();
+          envSel.innerHTML = `<option value="">All Environments</option>` +
+            envs.map(e => `<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`).join("");
+
+          // Version filter
+          const verSel = document.getElementById("execVersionFilter");
+          const versions = [...new Set(state.executions.map(e => e.fixVersion).filter(Boolean))].sort().reverse();
+          verSel.innerHTML = `<option value="">All Fix Versions</option>` +
+            versions.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+
+          // Label filter
+          const labelSel = document.getElementById("execLabelFilter");
+          const labels = [...new Set(state.executions.flatMap(e => e.labels || []))].sort();
+          labelSel.innerHTML = `<option value="">All Labels</option>` +
+            labels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("");
+        }
+
+        function applyExecFilter() {
+          const search = (document.getElementById("execSearchInput")?.value || "").toLowerCase();
+          const status = document.getElementById("execStatusFilter")?.value || "";
+          const env = document.getElementById("execEnvFilter")?.value || "";
+          const version = document.getElementById("execVersionFilter")?.value || "";
+          const label = document.getElementById("execLabelFilter")?.value || "";
+
+          execState.filtered = state.executions.filter(e => {
+            if (search && !e.key.toLowerCase().includes(search) &&
+                !e.summary.toLowerCase().includes(search) &&
+                !(e.assignee || "").toLowerCase().includes(search)) {
+              return false;
+            }
+            if (env && e.environment !== env) return false;
+            if (version && e.fixVersion !== version) return false;
+            if (label && !(e.labels || []).includes(label)) return false;
+
+            // Status filter - check if execution has tests with that status
+            if (status) {
+              const runs = state.testRuns.filter(r => r.execKey === e.key);
+              const hasStatus = runs.some(r => {
+                const sc = statusClass(r.status);
+                return status === "pass" ? sc === "pass" :
+                       status === "fail" ? sc === "fail" :
+                       status === "skip" ? sc === "skip" : false;
+              });
+              if (!hasStatus) return false;
+            }
+            return true;
+          });
+
+          execState.page = 1;
+          sortExecData();
+          renderExecTable();
+          renderExecPagination();
+        }
+
+        let execFilterTimeout;
+        function debouncedExecFilter() {
+          clearTimeout(execFilterTimeout);
+          execFilterTimeout = setTimeout(applyExecFilter, 300);
+        }
+
+        function sortExecData() {
+          const field = execState.sortField;
+          const dir = execState.sortDir === "asc" ? 1 : -1;
+
+          execState.filtered.sort((a, b) => {
+            let aVal, bVal;
+
+            if (field === "pass" || field === "fail" || field === "skip" || field === "total") {
+              const runsA = state.testRuns.filter(r => r.execKey === a.key);
+              const runsB = state.testRuns.filter(r => r.execKey === b.key);
+
+              if (field === "pass") {
+                aVal = runsA.filter(r => statusClass(r.status) === "pass").length;
+                bVal = runsB.filter(r => statusClass(r.status) === "pass").length;
+              } else if (field === "fail") {
+                aVal = runsA.filter(r => statusClass(r.status) === "fail").length;
+                bVal = runsB.filter(r => statusClass(r.status) === "fail").length;
+              } else if (field === "skip") {
+                aVal = runsA.filter(r => statusClass(r.status) === "skip").length;
+                bVal = runsB.filter(r => statusClass(r.status) === "skip").length;
+              } else {
+                aVal = runsA.length;
+                bVal = runsB.length;
+              }
+            } else if (field === "started") {
+              aVal = new Date(a.started || 0).getTime();
+              bVal = new Date(b.started || 0).getTime();
+            } else if (field === "key") {
+              aVal = a.key || "";
+              bVal = b.key || "";
+            } else if (field === "summary") {
+              aVal = a.summary || "";
+              bVal = b.summary || "";
+            } else if (field === "environment") {
+              aVal = a.environment || "";
+              bVal = b.environment || "";
+            } else if (field === "labels") {
+              aVal = (a.labels || []).join(" ");
+              bVal = (b.labels || []).join(" ");
+            } else if (field === "assignee") {
+              aVal = a.assignee || "";
+              bVal = b.assignee || "";
+            } else {
+              return 0;
+            }
+
+            if (typeof aVal === "string") {
+              return aVal.localeCompare(bVal) * dir;
+            }
+            return (aVal - bVal) * dir;
+          });
+        }
+
+        function sortExecTable(field) {
+          const header = document.querySelector(`th[onclick="sortExecTable('${field}')"]`);
+
+          if (execState.sortField === field) {
+            execState.sortDir = execState.sortDir === "asc" ? "desc" : "asc";
+          } else {
+            execState.sortField = field;
+            execState.sortDir = "desc";
+          }
+
+          // Update header classes
+          document.querySelectorAll(".exec-table th").forEach(th => {
+            th.classList.remove("sorted-asc", "sorted-desc");
+          });
+          if (header) {
+            header.classList.add(execState.sortDir === "asc" ? "sorted-asc" : "sorted-desc");
+          }
+
+          sortExecData();
+          execState.page = 1;
+          renderExecTable();
+          renderExecPagination();
+        }
+
+        function renderExecPagination() {
+          const total = execState.filtered.length;
+          const pageSize = execState.pageSize;
+          const totalPages = Math.ceil(total / pageSize);
+          const page = execState.page;
+
+          if (totalPages <= 1) {
+            document.getElementById("execPagination").innerHTML = total > 0 ?
+              `<span style="color:var(--text3)">Showing ${total} executions</span>` : "";
+            return;
+          }
+
+          let html = `<div class="page-btns">`;
+
+          // Prev button
+          html += page > 1 ?
+            `<button class="page-btn" onclick="changeExecPage(${page - 1})">◀</button>` : "";
+
+          // Page numbers (show up to 5)
+          const startPage = Math.max(1, page - 2);
+          const endPage = Math.min(totalPages, page + 2);
+
+          if (startPage > 1) {
+            html += `<button class="page-btn" onclick="changeExecPage(1)">1</button>`;
+            if (startPage > 2) html += `<span style="padding:0 4px;color:var(--text3)">...</span>`;
+          }
+
+          for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="page-btn ${i === page ? 'active' : ''}" onclick="changeExecPage(${i})">${i}</button>`;
+          }
+
+          if (endPage < totalPages) {
+            if (endPage < totalPages - 1) html += `<span style="padding:0 4px;color:var(--text3)">...</span>`;
+            html += `<button class="page-btn" onclick="changeExecPage(${totalPages})">${totalPages}</button>`;
+          }
+
+          // Next button
+          html += page < totalPages ?
+            `<button class="page-btn" onclick="changeExecPage(${page + 1})">▶</button>` : "";
+
+          html += `</div><span style="color:var(--text3);margin-left:12px">${((page - 1) * pageSize) + 1}-${Math.min(page * pageSize, total)} of ${total}</span>`;
+
+          document.getElementById("execPagination").innerHTML = html;
+        }
+
+        function changeExecPage(page) {
+          execState.page = page;
+          renderExecTable();
+          renderExecPagination();
+        }
+
+        function renderExecTable() {
+          const tbody = document.getElementById("execTableBody");
+          if (!tbody) return;
+
+          const pageSize = execState.pageSize;
+          const start = (execState.page - 1) * pageSize;
+          const paged = execState.filtered.slice(start, start + pageSize);
+          const jiraBase = document.getElementById("jiraUrl")?.value || "";
+
+          if (!paged.length) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="10">
+                  <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-title">No executions found</div>
+                    <div class="empty-sub">Try adjusting your filters</div>
+                  </div>
+                </td>
+              </tr>`;
+            return;
+          }
+
+          tbody.innerHTML = paged.map(e => {
+            const runs = state.testRuns.filter(r => r.execKey === e.key);
+            const pass = runs.filter(r => statusClass(r.status) === "pass").length;
+            const fail = runs.filter(r => statusClass(r.status) === "fail").length;
+            const skip = runs.filter(r => statusClass(r.status) === "skip").length;
+            const total = runs.length;
+
+            return `
+              <tr>
+                <td>
+                  <a class="test-key" href="${jiraBase}/browse/${e.key}" target="_blank" rel="noopener">
+                    ${escapeHtml(e.key)}
+                  </a>
+                </td>
+                <td>
+                  <div class="test-summary" title="${escapeHtml(e.summary)}">
+                    ${escapeHtml(e.summary)}
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap">
+                    ${(e.labels || []).map(l => `<span class="env-chip">${escapeHtml(l)}</span>`).join("") || "—"}
+                  </div>
+                </td>
+                <td><span class="duration-val">${fmt(e.started)}</span></td>
+                <td><span class="env-chip">${escapeHtml(e.environment || "—")}</span></td>
+                <td class="exec-pass">${pass}</td>
+                <td class="exec-fail">${fail}</td>
+                <td class="exec-skip">${skip}</td>
+                <td class="exec-total">${total}</td>
+                <td>${escapeHtml(e.assignee || "—")}</td>
+              </tr>`;
+          }).join("");
+        }
+
+
       function populateEnvFilter() {
-        const envs = [
-          ...new Set(state.testRuns.map((r) => r.environment).filter(Boolean)),
-        ];
         const sel = document.getElementById("envFilter");
         if (!sel) return;
-        const cur = sel.value;
-        sel.innerHTML = `<option value="">All</option>${envs.map((e) => `<option value="${escapeHtml(e)}" ${e === cur ? "selected" : ""}>${escapeHtml(e)}</option>`).join("")}`;
+
+        const current = sel.value || "";
+
+        const envs = [
+          ...new Set(
+            state.executions
+              .map(e => e.environment)
+              .filter(Boolean)
+          )
+        ].sort();
+
+        sel.innerHTML =
+          `<option value="">All</option>` +
+          envs
+            .map(env =>
+              `<option value="${escapeHtml(env)}" ${
+                env === current ? "selected" : ""
+              }>${escapeHtml(env)}</option>`
+            )
+            .join("");
       }
+
+      function getTestTypeCounts(runs) {
+        return runs.reduce((acc, r) => {
+          const type = r.testType || "Unknown";
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {});
+      }
+
       function populateBrowserFilter() {
         const browsers = [
           ...new Set(state.testRuns.map((r) => r.browser).filter(Boolean)),
@@ -3446,81 +4682,190 @@
         const cur = sel.value;
         sel.innerHTML = `<option value="">All</option>${browsers.map((b) => `<option value="${escapeHtml(b)}" ${b === cur ? "selected" : ""}>${escapeHtml(b)}</option>`).join("")}`;
       }
+
       function populateLabelChips() {
         const panel = document.getElementById("labelsChipPanel");
         if (!panel) return;
+
         const allLabels = new Set();
-        state.testRuns.forEach((r) =>
-          (r.labels || []).forEach((l) => allLabels.add(l)),
-        );
+
+        // ✅ EXECUTION‑LEVEL label discovery
+        state.executions.forEach(exec => {
+          (exec.labels || []).forEach(label => allLabels.add(label));
+        });
+
         if (!allLabels.size) {
           panel.style.display = "none";
           return;
         }
+
         panel.style.display = "block";
         const wrap = document.getElementById("labelChips");
         if (!wrap) return;
+
         wrap.innerHTML = Array.from(allLabels)
           .sort()
-          .map((l) => {
-            const active = state.activeLabels.has(l) ? "active" : "";
-            return `<span class="label-chip ${active}" onclick="toggleLabelChip('${escapeHtml(l)}')">${escapeHtml(l)}</span>`;
+          .map(label => {
+            const active = state.activeLabels.has(label) ? "active" : "";
+            return `
+              <span
+                class="label-chip ${active}"
+                onclick="toggleLabelChip('${escapeHtml(label)}')"
+              >
+                ${escapeHtml(label)}
+              </span>
+            `;
           })
           .join("");
       }
+      
       function toggleLabelChip(label) {
-        if (state.activeLabels.has(label)) state.activeLabels.delete(label);
-        else state.activeLabels.add(label);
+        if (!state.activeLabels) {
+          state.activeLabels = new Set();
+        }
+
+        if (state.activeLabels.has(label)) {
+          state.activeLabels.delete(label);
+        } else {
+          state.activeLabels.add(label);
+        }
+
         populateLabelChips();
-        state.currentPage = 1;
-        renderMetrics();
-        renderDonut();
-        renderMainTable();
+        renderAll(); // ✅ REQUIRED
       }
+
       function clearLabelFilters() {
         state.activeLabels.clear();
         populateLabelChips();
         state.currentPage = 1;
         renderMetrics();
+        renderExecSummary();
         renderDonut();
         renderMainTable();
+        renderAll(); 
       }
+
       function clearDateFilters() {
         document.getElementById("startDate").value = "";
         document.getElementById("endDate").value = "";
         notify("Date filters cleared", "success");
       }
 
-      // --- Auto-detect and mock data ---
-      async function autoDetectRelease() {
-        const jiraUrl = document.getElementById("jiraUrl").value.trim();
-        const project = document.getElementById("projectKey").value.trim();
-        const creds = loadCredentials();
+      function filteredExecutions() {
+        const envF = document.getElementById("envFilter")?.value || "";
+        const activeLabels = state.activeLabels || new Set();
 
-        if (!jiraUrl || !project || !creds?.hasAuth) {
-          notify("Missing Jira configuration", "error");
-          return;
-        }
+        return state.executions.filter(exec => {
+          // Server environment filter
+          if (envF && exec.environment !== envF) return false;
 
-        const versions = await fetchProjectVersions(jiraUrl, project, creds);
+          // Label filter (execution-level, Jira parity)
+          if (activeLabels.size > 0) {
+            const execLabels = exec.labels || [];
+            const matches = [...activeLabels].some(l =>
+              execLabels.includes(l)
+            );
+            if (!matches) return false;
+          }
 
-        if (!versions.length) {
-          notify("No active Release found for today", "error");
-          return;
-        }
-
-        // ✅ There should be exactly ONE
-        const selected = versions[0];
-
-        document.getElementById("fixVersion").value = selected.name;
-        state.fixVersion = selected.name;
-        document.getElementById("topFixVersion").textContent =
-          `fixVersion: ${selected.name}`;
-
-        notify(`Detected fixVersion: ${selected.name}`, "success");
+          return true;
+        });
       }
 
-      function populateReleaseDropdown(versions, currentName) {
+      async function fetchProjectVersionsWithDates(jiraUrl, projectKey, creds) {
+        let data;
+
+        if (RuntimeEnv.type === "server-proxy") {
+          const res = await apiFetch("/api/jira/projectVersions", {
+            params: {
+              jiraUrl,
+              projectKey,
+              auth: JSON.stringify(buildAuthConfig(creds)),
+            },
+          });
+
+          if (!res.ok) {
+            throw new Error(`Failed to fetch versions (${res.status})`);
+          }
+
+          data = await res.json();
+        } else {
+          const headers = buildHeaders(creds);
+          const res = await fetch(
+            `${jiraUrl}/rest/api/3/project/${encodeURIComponent(projectKey)}/version`,
+            { headers },
+          );
+
+          if (!res.ok) {
+            throw new Error(`Failed to fetch versions (${res.status})`);
+          }
+
+          data = await res.json();
+        }
+
+        // ✅ NORMALIZE HERE
+        return Array.isArray(data) ? data : data.values || [];
+      }
+
+      async function autoDetectRelease() {
+        const jiraUrl = document
+          .getElementById("jiraUrl")
+          .value.trim()
+          .replace(/\/$/, "");
+
+        const projectKey = document
+          .getElementById("projectKey")
+          .value.trim();
+
+        if (!jiraUrl || !projectKey) {
+          notify("Set Jira URL and Project Key first", "error");
+          return;
+        }
+
+        try {
+          const suffix = window.XRAY_ENV?.releaseSuffix || "";
+
+          const version = await autoDetectReleaseViaVersions(
+            jiraUrl,
+            projectKey,
+            suffix
+          );
+
+          if (!version) {
+            notify("No active release found for today", "error");
+            return;
+          }
+
+          // ✅ Fix Version
+          document.getElementById("fixVersion").value = version.name;
+          state.fixVersion = version.name;
+          document.getElementById("topFixVersion").textContent =
+            `fixVersion: ${version.name}`;
+
+          // ✅ Auto‑populate dates (ISO yyyy‑mm‑dd, input[type=date] safe)
+          if (version.startDate) {
+            document.getElementById("startDate").value = version.startDate;
+          }
+          if (version.releaseDate) {
+            document.getElementById("endDate").value = version.releaseDate;
+          }
+
+          // ✅ Persist via existing autosave
+          autoSaveConfig();
+
+          notify(
+            `Detected active release: ${version.name} (${version.startDate} → ${version.releaseDate})`,
+            "success"
+          );
+          
+
+        } catch (err) {
+          console.error(err);
+          notify(`Auto-detect failed: ${err.message}`, "error");
+        }
+      }
+
+      function populateReleaseDropdown(versions, current) {
         let dd = document.getElementById("releaseDropdownList");
         if (!dd) {
           dd = document.createElement("datalist");
@@ -3530,9 +4875,11 @@
             .getElementById("fixVersion")
             .setAttribute("list", "releaseDropdownList");
         }
-
         dd.innerHTML = versions
-          .map((v) => `<option value="${escapeHtml(v.name)}"></option>`)
+          .map(
+            (v) =>
+              `<option value="${escapeHtml(v)}">${escapeHtml(v)}${v === current ? " ← latest" : ""}</option>`,
+          )
           .join("");
       }
 
@@ -3699,110 +5046,312 @@
         renderLabelAnalytics();
         saveReleaseToHistory(fv, state.testRuns, state.executions);
         notify(
-          `Demo: ${state.testRuns.length} test runs across ${state.executions.length} executions`,
+          `Demo: ${state.executions.length} test runs across ${getJiraExecutionCount()} executions`,
         );
       }
 
+      /**
+       * Fetch Xray test runs with controlled concurrency (Cloud-safe)
+       * - Cloud: 3 parallel executions, throttled
+       * - Server/DC: 6 parallel executions, no throttling
+       */
+      async function fetchTestRunsConcurrently({ jiraUrl, executions, xrayType, creds, onRuns }) {
+        const concurrency = xrayType === "cloud" ? 1 : 6;
+        const throttle = xrayType === "cloud" ? 2000 : 0;
+
+        async function fetchOne(exec) {
+          const startTs = Date.now();
+          const runs = await fetchTestRuns(jiraUrl, exec, xrayType, creds);
+
+          // ✅ Execution is the environment authority
+          runs.forEach(r => {
+            r.environment = exec.environment || "";
+          });
+
+          fetchProgress.tick(exec.key, Date.now() - startTs);
+
+          return runs.map(r => ({
+            ...r,
+            execKey: exec.key,
+            execEnv: exec.environment,
+          }));
+        }
+
+        for (let i = 0; i < executions.length; i += concurrency) {
+          const batch = executions.slice(i, i + concurrency);
+          const results = await Promise.all(batch.map(fetchOne));
+          const flat = results.flat();
+          if (flat.length) onRuns(flat);
+          if (throttle) await new Promise(r => setTimeout(r, throttle));
+        }
+      }
+       
+      // Track retries per execution key
+      const executionRetryState = {
+        retries: {}, // { EXEC-123: 1 }
+        maxRetries: 1, // 🔒 hard safety limit
+
+        canRetry(execKey) {
+          return (this.retries[execKey] || 0) < this.maxRetries;
+        },
+
+        recordRetry(execKey) {
+          this.retries[execKey] = (this.retries[execKey] || 0) + 1;
+        },
+
+        reset() {
+          this.retries = {};
+        },
+      };
+
       // --- Main fetch (triggerFetch) ---
       async function triggerFetch() {
-        const jiraUrl = document
-          .getElementById("jiraUrl")
-          .value.trim()
-          .replace(/\/$/, "");
-        const project = document.getElementById("projectKey").value.trim();
-        const fixVer = document.getElementById("fixVersion").value.trim();
-        const xrayType = document.getElementById("xrayType").value;
-        const labelMode =
-          document.getElementById("labelFilter")?.value || "all";
-        const startDate = document.getElementById("startDate").value;
-        const endDate = document.getElementById("endDate").value;
-        if (!jiraUrl || !project) {
-          notify("Enter Jira URL and Project Key first", "error");
-          return;
-        }
-        if (!fixVer) {
-          notify("Set a Fix Version or click Auto Detect Release", "error");
-          return;
-        }
-        state.fixVersion = fixVer;
-        document.getElementById("topFixVersion").textContent =
-          `fixVersion: ${fixVer}`;
-        const creds = loadCredentials();
-        if (!creds?.hasAuth) {
-          notify("⚠ No credentials — configure in API Setup", "error");
-          switchTab("api", document.querySelectorAll(".tab")[7]);
-          return;
-        }
-        let jql = `issuetype="Test Execution" AND project="${project}" AND fixVersion="${fixVer}"`;
-        if (labelMode === "automation") jql += ' AND labels = "Automation"';
-        else if (labelMode === "manual") jql += ' AND labels = "Manual"';
-        if (startDate) jql += ` AND started >= "${startDate}"`;
-        if (endDate) jql += ` AND started <= "${endDate}"`;
-        document.getElementById("metricsGrid").innerHTML =
-          `<div style="grid-column:1/-1"><div class="loader-wrap"><div class="loader"></div><div class="loader-text">Fetching test executions for ${escapeHtml(fixVer)}…</div></div></div>`;
         try {
-          const searchResult = await searchJira(jiraUrl, jql, creds, {
-            maxResults: 100,
-            fields: "summary,status,assignee,fixVersions,labels,environment",
+          console.log("✅ triggerFetch ENTERED");
+          executionRetryState.reset();
+
+          document.getElementById("fetchExecBtn").disabled = true;
+          document.getElementById("cancelFetchBtn").style.display = "inline-flex";
+
+          /* ------------------------------------------------------------------
+          * 1) Read & validate inputs
+          * ------------------------------------------------------------------ */
+          const jiraUrl = document
+            .getElementById("jiraUrl")
+            .value.trim()
+            .replace(/\/$/, "");
+
+          const project = document.getElementById("projectKey").value.trim();
+          const fixVer = document.getElementById("fixVersion").value.trim();
+          const xrayType = document.getElementById("xrayType").value;
+          const labelMode =
+            document.getElementById("labelFilter")?.value || "all";
+          const startDate = document.getElementById("startDate").value;
+          const endDate = document.getElementById("endDate").value;
+
+          if (!jiraUrl || !project) {
+            notify("Enter Jira URL and Project Key first", "error");
+            return false;
+          }
+
+          const creds = loadCredentials();
+          if (!creds?.hasAuth) {
+            notify("⚠ No credentials — configure in API Setup", "error");
+            switchTab("api", document.querySelectorAll(".tab")[7]);
+            return false;
+          }
+
+          state.fixVersion = fixVer;
+          document.getElementById("topFixVersion").textContent =
+            fixVer ? `fixVersion: ${fixVer}` : "fixVersion: —";
+
+          /* ------------------------------------------------------------------
+          * 2) Jira search (only on FIRST page)
+          * ------------------------------------------------------------------ */
+          if (state.cloudPageIndex === 0) {
+            fetchProgress.start(1);
+            fetchProgress.update("Searching Jira for test executions…");
+
+            let jql = `issuetype="Test Execution" AND project="${project}"`;
+
+            // ✅ FixVersion is OPTIONAL
+            if (fixVer) {
+              jql += ` AND fixVersion="${fixVer}"`;
+            }
+
+            // ✅ Optional label filters
+            if (labelMode === "automation") {
+              jql += ' AND labels = "Automation"';
+            }
+            if (labelMode === "manual") {
+              jql += ' AND labels = "Manual"';
+            }
+
+            // ✅ Safe date filtering (Jira-native field)
+            if (startDate) {
+              jql += ` AND updated >= "${startDate}"`;
+            }
+            if (endDate) {
+              jql += ` AND updated <= "${endDate}"`;
+            }
+
+            logDebug("Starting Jira search", { jql });
+
+            const issues = await searchJiraAll(jiraUrl, jql);
+
+            logDebug("Jira search complete", {
+              executionsFound: issues.length,
+            });
+
+            const serverEnvField =
+              document.getElementById("serverEnvField")?.value ||
+              "customfield_10028";
+
+            state.executions = issues
+              .map((issue) => ({
+                key: issue.key || "",
+                issueId: issue.id ? String(issue.id) : null,
+                summary: issue.fields?.summary || "",
+                fixVersion:
+                  issue.fields?.fixVersions?.[0]?.name || fixVer,
+                environment:
+                  issue.fields?.[serverEnvField] ||
+                  issue.fields?.environment ||
+                  "",
+                assignee:
+                  issue.fields?.assignee?.displayName ||
+                  issue.fields?.assignee?.emailAddress ||
+                  "",
+                labels: issue.fields?.labels || [],
+              }))
+              .filter((e) => e.key && e.issueId); // ✅ Cloud-safe
+
+            state.testRuns = [];
+            state.cloudPageIndex = 0;
+            state.pageTimings = [];
+
+            /* ✅✅ CRITICAL FIX:
+            * Handle "NO EXECUTIONS FOUND" EARLY AND CLEANLY
+            */
+            if (state.executions.length === 0) {
+              state.cloudHasMore = false;
+              state.autoPaging = false;
+
+              fetchProgress.finish();
+              renderAll();
+
+              notify(
+                "No Test Executions found for the selected criteria",
+                "success"
+              );
+              return false; // ✅ prevents stall
+            }
+          }
+
+          /* ------------------------------------------------------------------
+          * 3) Compute paging window
+          * ------------------------------------------------------------------ */
+          const pageStart =
+            state.cloudPageIndex * state.cloudPageSize;
+          const pageEnd = pageStart + state.cloudPageSize;
+          const pageExecutions =
+            state.executions.slice(pageStart, pageEnd);
+
+          state.cloudHasMore =
+            pageEnd < state.executions.length;
+
+          logDebug("Cloud paging window", {
+            pageIndex: state.cloudPageIndex,
+            pageStart,
+            pageEnd,
+            firstExecKey: pageExecutions[0]?.key,
+            lastExecKey: pageExecutions.at(-1)?.key,
           });
-          if (searchResult.error || searchResult.errorMessages)
-            throw new Error(
-              searchResult.errorMessages?.[0] ||
-                searchResult.error ||
-                "Jira search failed",
-            );
-          const serverEnvField =
-            document.getElementById("serverEnvField")?.value ||
-            "customfield_10028";
-          const browserField =
-            document.getElementById("browserField")?.value ||
-            "customfield_10029";
-          state.executions = (searchResult.issues || []).map((issue) => ({
-            key: issue.key,
-            summary: issue.fields?.summary || "",
-            fixVersion: (issue.fields?.fixVersions || [])[0]?.name || fixVer,
-            environment:
-              issue.fields?.[serverEnvField] || issue.fields?.environment || "",
-            assignee:
-              issue.fields?.assignee?.displayName ||
-              issue.fields?.assignee?.emailAddress ||
-              "",
-            started: issue.fields?.customfield_12300 || null,
-            finished: issue.fields?.customfield_12301 || null,
-            status: issue.fields?.status?.name || "",
-            labels: issue.fields?.labels || [],
-          }));
-          const runsArrays = await Promise.all(
-            state.executions.map((exec) =>
-              fetchTestRuns(jiraUrl, exec.key, xrayType, creds),
-            ),
-          );
-          state.testRuns = runsArrays.flatMap((runs, i) =>
-            runs.map((r) => ({
-              ...r,
-              execKey: state.executions[i].key,
-              execEnv: state.executions[i].environment,
-              labels: r.labels?.length ? r.labels : state.executions[i].labels,
-            })),
-          );
-          state.activeLabels.clear();
-          if (!state.trendHistory) generateTrendHistory();
-          populateEnvFilter();
-          populateBrowserFilter();
-          populateLabelChips();
+
+          /* ✅ Defensive guard (no executions on this page) */
+          if (!pageExecutions.length) {
+            fetchProgress.finish();
+            notify("No executions to fetch", "success");
+            return false;
+          }
+
+          fetchProgress.total = pageExecutions.length;
+          fetchProgress.update("Fetching Xray test runs…");
+
+          /* ------------------------------------------------------------------
+          * 4) Fetch Xray test runs for THIS page only
+          * ------------------------------------------------------------------ */
+          const pageStartMs = Date.now();
+
+          await fetchTestRunsConcurrently({
+            jiraUrl,
+            executions: pageExecutions,
+            xrayType,
+            creds,
+            onRuns: (runs) => {
+              state.testRuns = dedupeTestRuns([
+                ...state.testRuns,
+                ...runs,
+              ]);
+
+              logDebug("Deduped testRuns", {
+                total: state.executions.length,
+              });
+
+              renderAll();
+            },
+          });
+
+          state.pageTimings.push(Date.now() - pageStartMs);
+
+          /* ------------------------------------------------------------------
+          * 5) Advance page (ONLY after successful fetch)
+          * ------------------------------------------------------------------ */
+          if (state.cloudHasMore) {
+            state.cloudPageIndex++;
+          }
+
+          /* ------------------------------------------------------------------
+          * 6) ETA + UI updates
+          * ------------------------------------------------------------------ */
+          updateAutoFetchEta();
           renderAll();
-          saveReleaseToHistory(fixVer, state.testRuns, state.executions);
-          renderLabelAnalytics();
+
           notify(
-            `Loaded ${state.testRuns.length} test runs across ${state.executions.length} execution(s)`,
+            `Loaded executions ${pageStart + 1}–${Math.min(
+              pageEnd,
+              state.executions.length
+            )} of ${state.executions.length} · ${
+              state.executions.length
+            } test runs`
           );
-        } catch (e) {
-          console.error("triggerFetch error", e);
-          document.getElementById("metricsGrid").innerHTML =
-            `<div style="grid-column:1/-1"><div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-title">API Error</div><div class="empty-sub" style="color:var(--fail)">${escapeHtml(e.message)}</div><div class="empty-sub" style="margin-top:8px">${RuntimeEnv.type === "browser" ? "💡 Start the proxy server to avoid CORS issues" : "Check credentials and network"}</div></div></div>`;
-          notify(e.message, "error");
+
+          fetchProgress.finish();
+          document.getElementById("fetchExecBtn").disabled = false;
+          document.getElementById("cancelFetchBtn").style.display = "none";
+          return true; // ✅ critical for auto-fetch controller
+        } catch (err) {
+          console.error("triggerFetch failed", err);
+          notify(err.message || "Fetch failed", "error");
+          fetchProgress.finish();
+          document.getElementById("fetchExecBtn").disabled = false;
+          document.getElementById("cancelFetchBtn").style.display = "none";
+          return false;
         }
-        autoSaveConfig();
+      }
+
+      function populateLabelFilterFromResults() {
+        const labels = new Set();
+        state.testRuns.forEach((r) =>
+          (r.labels || []).forEach((l) => labels.add(l)),
+        );
+
+        const sel = document.getElementById("labelFilter");
+        sel.innerHTML = "";
+
+        [...labels].sort().forEach((l) => {
+          const opt = document.createElement("option");
+          opt.value = l;
+          opt.textContent = l;
+          sel.appendChild(opt);
+        });
+      }
+
+      function populateEnvironmentFilterFromResults() {
+        const envs = new Set();
+        state.testRuns.forEach((r) =>
+          (r.environment || []).forEach((e) => envs.add(e)),
+        );
+
+        const sel = document.getElementById("environmentFilter");
+        sel.innerHTML = "";
+
+        [...envs].sort().forEach((e) => {
+          const opt = document.createElement("option");
+          opt.value = e;
+          opt.textContent = e;
+          sel.appendChild(opt);
+        });
       }
 
       // --- Compare tab functions (simplified but working) ---
@@ -3813,6 +5362,7 @@
           banner.style.display = "flex";
         if (state.slotA && state.slotB) renderComparison();
       }
+
       async function loadSlot(slot) {
         const fixVer = document
           .getElementById(`slot${slot}Version`)
@@ -3821,30 +5371,41 @@
           notify(`Enter a fix version for Release ${slot}`, "error");
           return;
         }
+
         const jiraUrl = document
           .getElementById("jiraUrl")
           .value.trim()
           .replace(/\/$/, "");
         const project = document.getElementById("projectKey").value.trim();
         const xrayType = document.getElementById("xrayType").value;
+
         const statusEl = document.getElementById(`slot${slot}Status`);
         const metricsEl = document.getElementById(`slot${slot}Metrics`);
+
         if (!jiraUrl || !project) {
           notify("Set Jira URL and Project Key in Overview first", "error");
           return;
         }
+
         const creds = loadCredentials();
         if (!creds?.hasAuth) {
           notify("No credentials — configure in API Setup", "error");
           return;
         }
+
         statusEl.innerHTML = `<span style="color:var(--text2)">⏳ Fetching ${escapeHtml(fixVer)}…</span>`;
         metricsEl.style.display = "none";
+
         try {
+          /* ------------------------------------------------------------
+           * 1) Fetch executions from Jira
+           * ------------------------------------------------------------ */
           const jql = `issuetype="Test Execution" AND project="${project}" AND fixVersion="${fixVer}"`;
+
           const data = await searchJira(jiraUrl, jql, creds, {
             maxResults: 100,
           });
+
           const executions = (data.issues || []).map((issue) => ({
             key: issue.key,
             summary: issue.fields?.summary || "",
@@ -3856,24 +5417,67 @@
             status: issue.fields?.status?.name || "",
             labels: issue.fields?.labels || [],
           }));
-          const runsArrays = await Promise.all(
-            executions.map((exec) =>
-              fetchTestRuns(jiraUrl, exec.key, xrayType, creds),
-            ),
-          );
-          const testRuns = runsArrays.flatMap((runs, i) =>
-            runs.map((r) => ({
-              ...r,
-              execKey: executions[i].key,
-              execEnv: executions[i].environment,
-            })),
-          );
-          setSlotData(slot, { fixVersion: fixVer, executions, testRuns });
+
+          /* ------------------------------------------------------------
+           * 2) Fetch Xray test runs SEQUENTIALLY (429-safe)
+           * ------------------------------------------------------------ */
+          const testRuns = [];
+
+          for (const exec of executions) {
+            try {
+              console.log(`Fetching Xray data for ${exec.key}`);
+              logDebug("Fetching test runs for execution", {
+                execKey: exec.key,
+              });
+              const runs = await fetchTestRuns(
+                jiraUrl,
+                exec.key,
+                xrayType,
+                creds,
+              );
+
+              testRuns.push(
+                ...runs.map((r) => ({
+                  ...r,
+                  execKey: exec.key,
+                  execEnv: exec.environment,
+                  labels: exec.labels
+                })),
+              );
+              logDebug("Xray batch completed", {
+                runsSoFar: document
+                  .getElementById("debugConsole")
+                  ?.textContent.split("\n").length,
+              });
+
+              // ✅ REQUIRED: Xray Cloud throttle
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            } catch (err) {
+              logDebug("❌ Xray fetch failed", {
+                execKey: exec.key,
+                error: err.message || err,
+              });
+            }
+          }
+
+          /* ------------------------------------------------------------
+           * 3) Store slot data
+           * ------------------------------------------------------------ */
+          setSlotData(slot, {
+            fixVersion: fixVer,
+            executions,
+            testRuns,
+          });
+
+          statusEl.innerHTML = `<span style="color:var(--pass)">✅ Loaded ${escapeHtml(fixVer)}</span>`;
         } catch (e) {
+          console.error(`loadSlot(${slot}) error`, e);
           statusEl.innerHTML = `<span style="color:var(--fail)">⚠ ${escapeHtml(e.message)}</span>`;
           notify(e.message, "error");
         }
+        logDebug("Xray fetch complete");
       }
+
       function loadSlotMock(slot) {
         const fv =
           document.getElementById(`slot${slot}Version`).value ||
@@ -4033,7 +5637,7 @@
         const maxTotal = Math.max(sa.total, sb.total) || 1;
         const rows = [
           {
-            label: "TOTAL TESTS",
+            label: "TOTAL TESTS RUNS",
             aVal: sa.total,
             bVal: sb.total,
             color: "var(--info)",
@@ -4113,14 +5717,7 @@
                 `<div class="cbc-col"><div class="cbc-stack" style="height:${((s.pass + s.fail + s.skip) / maxT) * maxH}px"><div class="cbc-seg" style="height:${(s.skip / maxT) * maxH}px;background:var(--skip)"></div><div class="cbc-seg" style="height:${(s.fail / maxT) * maxH}px;background:var(--fail)"></div><div class="cbc-seg" style="height:${(s.pass / maxT) * maxH}px;background:${color}"></div></div><div class="cbc-lbl" style="color:${color}">${lbl}</div><div class="cbc-lbl">${escapeHtml(ver.replace(/Release\s+/i, "").replace(/\s+eBus/i, ""))}</div></div>`,
             )
             .join("")}</div>`;
-        function statusRank(s) {
-          s = (s || "").toUpperCase();
-          if (s === "PASS") return 3;
-          if (s === "SKIP") return 2;
-          if (s === "BLOCKED") return 1;
-          if (s === "FAIL") return 0;
-          return 2;
-        }
+  
         const aMap = {},
           bMap = {};
         a.testRuns.forEach((r) => {
@@ -4208,7 +5805,7 @@
 
       // --- Export CSV functions ---
       function exportCSV() {
-        if (!state.testRuns.length) {
+        if (!state.executions.length) {
           notify("No data to export", "error");
           return;
         }
@@ -4417,6 +6014,16 @@
         if (env.compareReleaseB)
           document.getElementById("slotBVersion").value = env.compareReleaseB;
       }
+
+      function getTestTypeCounts(runs) {
+        const counts = {};
+        runs.forEach(r => {
+          const t = r.testType || "Unknown";
+          counts[t] = (counts[t] || 0) + 1;
+        });
+        return counts;
+      }
+
       function loadDashboardState() {
         try {
           const saved = JSON.parse(
@@ -4434,6 +6041,7 @@
             document.getElementById("xrayType").value = saved.xrayType;
         } catch {}
       }
+
       function saveDashboardState() {
         try {
           localStorage.setItem(
@@ -4447,9 +6055,71 @@
           );
         } catch {}
       }
+      
+      // ✅ REQUIRED by dedupeTestRuns
+      function statusRank(status) {
+        switch ((status || "").toUpperCase()) {
+          case "FAIL":
+          case "FAILED":
+            return 0;
+          case "BLOCKED":
+            return 1;
+          case "SKIP":
+          case "SKIPPED":
+            return 2;
+          case "PASS":
+            return 3;
+          default:
+            return 2;
+        }
+      }
+
+      function pickReleaseForToday(versions) {
+        if (!Array.isArray(versions)) return null;
+        // 🔍 DEBUG: inspect all versions returned by Jira
+        console.table(
+          versions.map((v) => ({
+            name: v.name,
+            start: v.startDate,
+            end: v.releaseDate,
+            isEBus: v.name?.includes("eBus"),
+          })),
+        );
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const suffix = (window.XRAY_ENV?.releaseSuffix || "").toLowerCase();
+
+        const candidates = versions
+          // ✅ MUST match release suffix (eBus)
+          .filter((v) =>
+            suffix ? v.name?.toLowerCase().includes(suffix) : true,
+          )
+
+          // ✅ MUST have both dates
+          .filter((v) => v.startDate && v.releaseDate)
+
+          // ✅ MUST span today
+          .filter((v) => {
+            const start = new Date(v.startDate);
+            const end = new Date(v.releaseDate);
+            return start <= today && today <= end;
+          });
+
+        if (!candidates.length) return null;
+
+        // ✅ If multiple, pick the one with latest startDate
+        candidates.sort(
+          (a, b) => new Date(b.startDate) - new Date(a.startDate),
+        );
+
+        return candidates[0];
+      }
 
       // --- Tab switching (includes label analytics) ---
       function switchTab(name, el) {
+        state.activeTab = name;
         document
           .querySelectorAll(".view")
           .forEach((v) => v.classList.remove("active"));
@@ -4471,12 +6141,22 @@
 
       // --- DOM Ready ---
       document.addEventListener("DOMContentLoaded", async () => {
+        
+        const savedTheme = localStorage.getItem("xray_theme");
+        if (savedTheme) {
+          document.documentElement.setAttribute(
+            "data-theme",
+            savedTheme
+          );
+        }
+
         await RuntimeEnv.detect();
         loadFullConfig();
         applyEnvConfig();
         loadDashboardState();
         attachAutoSaveListeners();
         enhanceApiTab();
+        state.isReady = true;
         const jqlInput = document.getElementById("jqlInput");
         if (jqlInput) jqlInput.value = `issuetype="Test Execution"`;
         const fixVerInput = document.getElementById("fixVersion");
@@ -4487,11 +6167,156 @@
         }
         const canvas = document.getElementById("passRateLineChart");
         if (canvas) canvas.style.display = "none";
+        renderAll();
         notify(
           `Dashboard ready — ${RuntimeEnv.type === "server-proxy" ? "Server (Proxy) mode" : "Browser mode"}`,
           "success",
         );
       });
+     
+      function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+
+        html.setAttribute("data-theme", next);
+        localStorage.setItem("xray_theme", next);
+      }
+
+      async function startAutoFetch() {
+        if (state.autoPaging) {
+          notify("Auto‑fetch already running", "error");
+          return;
+        }
+
+        state.autoPaging = true;
+        state.autoPagingPaused = false;
+        state.pageTimings = [];
+
+        document.getElementById("autoFetchBtn").style.display = "none";
+        document.getElementById("pauseFetchBtn").style.display = "inline-flex";
+        document.getElementById("cancelFetchBtn").style.display = "inline-flex";
+        document.getElementById("fetchExecBtn").disabled = true;
+
+        notify("Auto‑fetch started (Cloud‑safe)");
+
+        try {
+          while (state.cloudHasMore && state.autoPaging) {
+            // ✅ Pause support
+            while (state.autoPagingPaused) {
+              await sleep(500);
+            }
+
+            // ✅ Check if cancelled
+            if (!state.autoPaging) break;
+
+            const pageStartTime = Date.now();
+
+            const completed = await triggerFetch(); // fetch ONE page
+            if (!completed) break; // hard stop on error
+
+            const duration = Date.now() - pageStartTime;
+            state.pageTimings.push(duration);
+
+            updateAutoFetchEta();
+
+            // ✅ polite Cloud‑safe delay between pages
+            await sleep(4000);
+          }
+
+          if (!state.autoPaging) {
+            notify("Auto‑fetch cancelled", "success");
+          } else {
+            notify(
+              `Auto‑fetch complete · ${state.executions.length} test runs loaded`,
+              "success"
+            );
+          }
+        } finally {
+          stopAutoFetchUI();
+          document.getElementById("cancelFetchBtn").style.display = "none";
+          document.getElementById("fetchExecBtn").disabled = false;
+          state.autoPaging = false;
+        }
+      }
+
+      function togglePauseFetch() {
+        state.autoPagingPaused = !state.autoPagingPaused;
+
+        const btn = document.getElementById("pauseFetchBtn");
+        btn.textContent = state.autoPagingPaused ? "▶ Resume" : "⏸ Pause";
+
+        notify(
+          state.autoPagingPaused ? "Auto‑fetch paused" : "Auto‑fetch resumed",
+          "success"
+        );
+      }
+
+      function updateAutoFetchEta() {
+        if (!state.pageTimings.length) return;
+
+        const avgMs =
+          state.pageTimings.reduce((a, b) => a + b, 0) /
+          state.pageTimings.length;
+
+        const remainingPages = Math.ceil(
+          (state.executions.length -
+            state.cloudPageIndex * state.cloudPageSize) /
+          state.cloudPageSize
+        );
+
+        const etaMs = Math.max(remainingPages, 0) * avgMs;
+
+        document.getElementById("autoFetchEta").textContent =
+          `ETA: ${formatDuration(etaMs)} · ` +
+          `Page ${state.cloudPageIndex + 1} of ${Math.ceil(
+            state.executions.length / state.cloudPageSize
+          )}`;
+      }
+
+      function formatDuration(ms) {
+        if (!ms || ms < 1000) return "<1s";
+        const s = Math.ceil(ms / 1000);
+        if (s < 60) return `${s}s`;
+        const m = Math.floor(s / 60);
+        return `${m}m ${s % 60}s`;
+      }
+      
+      function stopAutoFetchUI() {
+        document.getElementById("autoFetchBtn").style.display = "inline-flex";
+        document.getElementById("pauseFetchBtn").style.display = "none";
+        document.getElementById("cancelFetchBtn").style.display = "none";
+        document.getElementById("autoFetchEta").textContent = "";
+      }
+
+      function cancelFetch() {
+        state.autoPaging = false;
+        state.autoPagingPaused = false;
+        stopAutoFetchUI();
+        document.getElementById("fetchExecBtn").disabled = false;
+        notify("Fetch cancelled", "success");
+      }
+
+      function clearAllData() {
+        if (!confirm("Clear all loaded data? This cannot be undone.")) return;
+        state.testRuns = [];
+        state.executions = [];
+        state.cloudPageIndex = 0;
+        state.cloudHasMore = true;
+        state.autoPaging = false;
+        state.autoPagingPaused = false;
+        state.pageTimings = [];
+        document.getElementById("fetchProgressWrap").style.display = "none";
+        stopAutoFetchUI();
+        document.getElementById("cancelFetchBtn").style.display = "none";
+        document.getElementById("fetchExecBtn").disabled = false;
+        renderAll();
+        notify("All data cleared", "success");
+      }
+
+      function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+      }
     </script>
   </body>
 </html>
