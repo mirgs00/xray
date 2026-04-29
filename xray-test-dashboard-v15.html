@@ -1285,6 +1285,83 @@
       .exec-fail { color: var(--fail); font-family: "Space Mono", monospace; font-weight: 700; }
       .exec-skip { color: var(--skip); font-family: "Space Mono", monospace; font-weight: 700; }
       .exec-total { font-family: "Space Mono", monospace; font-weight: 700; color: var(--text); }
+      .failure-card {
+        border: 1px solid rgba(255, 77, 106, 0.2);
+        border-radius: 8px;
+        margin-bottom: 12px;
+        background: rgba(255, 77, 106, 0.03);
+        overflow: hidden;
+      }
+      .failure-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(255, 77, 106, 0.1);
+        gap: 12px;
+      }
+      .failure-header:hover {
+        background: rgba(255, 77, 106, 0.05);
+      }
+      .failure-detail {
+        display: none;
+        padding: 12px 16px;
+      }
+      .failure-detail.open {
+        display: block;
+      }
+      .evidence-gallery {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255, 77, 106, 0.1);
+      }
+      .evidence-thumb {
+        width: 120px;
+        height: 80px;
+        object-fit: cover;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.2s, border-color 0.2s;
+      }
+      .evidence-thumb:hover {
+        transform: scale(1.05);
+        border-color: var(--fail);
+      }
+      .evidence-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        text-decoration: none;
+        font-size: 11px;
+        color: var(--info);
+      }
+      .evidence-link:hover {
+        text-decoration: underline;
+      }
+      .evidence-modal {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        cursor: pointer;
+      }
+      .evidence-modal img {
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+      .step-failed {
+        border-color: rgba(255, 77, 106, 0.3) !important;
+        background: rgba(255, 77, 106, 0.04) !important;
+      }
     </style>
   </head>
   <body>
@@ -1687,6 +1764,9 @@
             <select id="execLabelFilter" onchange="applyExecFilter()">
               <option value="">All Labels</option>
             </select>
+            <button class="btn btn-secondary" onclick="clearExecFilters()" style="font-size:11px;padding:5px 10px">
+              ✕ Clear
+            </button>
           </div>
           <div style="overflow-x: auto">
             <table class="exec-table">
@@ -3045,7 +3125,11 @@
                     action
                     result
                   }
-                  evidence { filename }
+                  evidence { 
+                    filename 
+                    downloadLink 
+                    storedInJira 
+                  }
                 }
               }
             }
@@ -3103,7 +3187,11 @@
               status: s.status?.name || "TODO",
               comment: "",
             })),
-            evidence: (run.evidence || []).map(e => e.filename),
+            evidence: (run.evidence || []).map(e => ({
+                filename: e.filename,
+                downloadLink: e.downloadLink || null,
+                storedInJira: e.storedInJira || false
+              })),
             labels: [],
           };
         });
@@ -4243,23 +4331,103 @@ function renderAll() {
         state.currentPage = p;
         renderMainTable();
       }
+      function getLatestFailures() {
+        const failMap = new Map();
+        
+        state.testRuns.forEach(r => {
+          if (statusClass(r.status) !== "fail") return;
+          
+          const existing = failMap.get(r.key);
+          // Keep the one with MOST RECENT started date
+          if (!existing || new Date(r.started) > new Date(existing.started)) {
+            failMap.set(r.key, r);
+          }
+        });
+        
+        return Array.from(failMap.values())
+          .sort((a, b) => new Date(b.started) - new Date(a.started));
+      }
+
       function renderFailures() {
-        const fails = state.testRuns.filter(
-          (r) => statusClass(r.status) === "fail",
-        );
+        const fails = getLatestFailures();
         document.getElementById("failCount").textContent =
           `${fails.length} failures`;
+
         if (!fails.length) {
           document.getElementById("failuresBody").innerHTML =
             `<div class="empty-state"><div class="empty-icon">🎉</div><div class="empty-title">No failures found!</div></div>`;
           return;
         }
-        document.getElementById("failuresBody").innerHTML = fails
-          .map(
-            (r) =>
-              `<div style="border:1px solid rgba(255,77,106,0.2);border-radius:8px;margin-bottom:12px;background:rgba(255,77,106,0.03);overflow:hidden"><div style="padding:14px 16px;display:flex;align-items:center;gap:12px;justify-content:space-between;cursor:pointer;border-bottom:1px solid rgba(255,77,106,0.1)" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"><div style="display:flex;align-items:center;gap:10px"><span class="test-key">${escapeHtml(r.key)}</span><span style="color:var(--text)">${escapeHtml(r.summary)}</span></div><div style="display:flex;align-items:center;gap:8px"><span class="env-chip">${escapeHtml(r.environment || "—")}</span><span class="env-chip" style="background:rgba(180,77,255,0.08);border-color:rgba(180,77,255,0.2);color:var(--blocked)">${escapeHtml(r.browser || "—")}</span><span class="status-badge fail"><span class="dot"></span>FAIL</span></div></div><div style="padding:16px;display:none"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="detail-section-title">Failed Steps</div><div class="step-list">${(r.steps || []).map((s) => `<div class="step-row" style="${s.status === "FAIL" ? "border-color:rgba(255,77,106,0.3);background:rgba(255,77,106,0.04)" : ""}"><div class="step-num">#${s.index}</div><div class="step-desc">${escapeHtml(s.action)}</div><span class="status-badge ${statusClass(s.status)}">${escapeHtml(s.status)}</span></div>`).join("")}</div></div><div><div class="error-block"><div class="error-label">Stack Trace / Error</div><div class="error-text">${escapeHtml(r.error || "No stack trace available")}</div></div></div></div></div></div>`,
-          )
-          .join("");
+
+        const jiraBase = document.getElementById("jiraUrl")?.value || '';
+        document.getElementById("failuresBody").innerHTML = fails.map(r => {
+          const execLink = `${jiraBase}/browse/${r.execKey}`;
+          const testLink = `${jiraBase}/browse/${r.key}`;
+
+          return `
+          <div class="failure-card" id="failure-card-${r.id}">
+            <div class="failure-header" onclick="toggleFailureDetail('${r.id}')">
+              <div style="display:flex;align-items:center;gap:10px;flex:1">
+                <a class="test-key" href="${testLink}" target="_blank"
+                   style="color:var(--fail)" onclick="event.stopPropagation()">
+                  ${escapeHtml(r.key)}
+                </a>
+                <span style="color:var(--text)">${escapeHtml(r.summary)}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <a href="${execLink}" target="_blank" class="env-chip"
+                   style="color:var(--fail)" onclick="event.stopPropagation()">
+                  Exec: ${escapeHtml(r.execKey)}
+                </a>
+                <span class="env-chip">${escapeHtml(r.environment || "—")}</span>
+                <span class="status-badge fail">FAIL</span>
+                <span style="color:var(--text3);font-size:11px">${fmt(r.started)}</span>
+              </div>
+            </div>
+            <div class="failure-detail" id="failure-detail-${r.id}" style="display:none">
+              <!-- Evidence Screenshots -->
+              ${(() => {
+                if (!(r.evidence || []).length) return '';
+                const evHtml = (r.evidence || []).map(e => 
+                  `<div style="display:inline-block;margin:4px">
+                    <img src="${e.downloadLink || '#'}" 
+                         alt="${escapeHtml(e.filename)}"
+                         style="width:120px;height:80px;object-fit:cover;border:1px solid var(--border);border-radius:4px;cursor:pointer"
+                         onerror="this.style.display='none'"
+                         onclick="event.stopPropagation();showEvidenceModal('${e.downloadLink || ''}')">
+                    <div style="font-size:10px;color:var(--text3);margin-top:2px">${escapeHtml(e.filename)}</div>
+                  </div>`
+                ).join('');
+                return `<div class="evidence-gallery">${evHtml}</div>`;
+              })()}
+
+              <!-- Failed Steps -->
+              <div style="padding:12px 16px">
+                <div class="detail-section-title">Test Steps</div>
+                <div class="step-list">
+                  ${(r.steps || []).map(s => `
+                    <div class="step-row ${s.status === 'FAIL' ? 'step-failed' : ''}">
+                      <div class="step-num">#${s.index}</div>
+                      <div class="step-desc">${escapeHtml(s.action)}</div>
+                      <span class="status-badge ${statusClass(s.status)}">${s.status}</span>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+
+              <!-- Stack Trace -->
+              ${r.error ? `
+                <div style="padding:0 16px 16px">
+                  <div class="error-block">
+                    <div class="error-label">Stack Trace / Error</div>
+                    <pre class="error-text">${escapeHtml(r.error)}</pre>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+        }).join("");
       }
       function renderEnvironments() {
         const envMap = {},
@@ -4378,12 +4546,19 @@ function renderAll() {
       function renderExecStats() {
           if (!state.executions.length) return;
 
-          const runs = state.testRuns;
+          // Use filtered list if filters are active, otherwise use all
+          const isFiltered = execState.filtered.length > 0 && execState.filtered.length !== state.executions.length;
+          const execs = isFiltered ? execState.filtered : state.executions;
+
+          // Get test runs only for the displayed executions
+          const execKeys = new Set(execs.map(e => e.key));
+          const runs = state.testRuns.filter(r => execKeys.has(r.execKey));
+
           const pass = runs.filter(r => statusClass(r.status) === "pass").length;
           const fail = runs.filter(r => statusClass(r.status) === "fail").length;
           const skip = runs.filter(r => statusClass(r.status) === "skip").length;
 
-          document.getElementById("execStatTotal").textContent = state.executions.length;
+          document.getElementById("execStatTotal").textContent = execs.length;
           document.getElementById("execStatTests").textContent = runs.length;
           document.getElementById("execStatPass").textContent = pass;
           document.getElementById("execStatFail").textContent = fail;
@@ -4445,6 +4620,7 @@ function renderAll() {
           sortExecData();
           renderExecTable();
           renderExecPagination();
+          renderExecStats(); // Update stats bar to reflect filtered data
         }
 
         let execFilterTimeout;
@@ -4528,6 +4704,22 @@ function renderAll() {
           execState.page = 1;
           renderExecTable();
           renderExecPagination();
+        }
+
+        function clearExecFilters() {
+          document.getElementById("execSearchInput").value = "";
+          document.getElementById("execStatusFilter").value = "";
+          document.getElementById("execEnvFilter").value = "";
+          document.getElementById("execVersionFilter").value = "";
+          document.getElementById("execLabelFilter").value = "";
+          execState.filtered = [...state.executions];
+          execState.sortField = "started";
+          execState.sortDir = "desc";
+          execState.page = 1;
+          sortExecData();
+          renderExecTable();
+          renderExecPagination();
+          renderExecStats();
         }
 
         function renderExecPagination() {
@@ -6314,9 +6506,28 @@ function renderAll() {
         notify("All data cleared", "success");
       }
 
-      function sleep(ms) {
+function sleep(ms) {
         return new Promise(r => setTimeout(r, ms));
       }
+
+      function toggleFailureDetail(id) {
+        const detail = document.getElementById(`failure-detail-${id}`);
+        if (detail) {
+          detail.classList.toggle("open");
+          detail.style.display = detail.classList.contains("open") ? "block" : "none";
+        }
+      }
+
+      function showEvidenceModal(url) {
+        if (!url || url === '#') return;
+
+        const modal = document.createElement('div');
+        modal.className = 'evidence-modal';
+        modal.onclick = () => modal.remove();
+        modal.innerHTML = `<img src="${url}" alt="Evidence">`;
+        document.body.appendChild(modal);
+      }
+
     </script>
   </body>
 </html>
