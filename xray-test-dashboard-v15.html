@@ -604,14 +604,6 @@
         color: var(--text2);
         line-height: 1.5;
       }
-      .step-keyword {
-        font-size: 10px;
-        color: var(--info);
-        font-weight: 600;
-        text-transform: uppercase;
-        min-width: 50px;
-        padding-top: 2px;
-      }
       .step-comment {
         font-size: 11px;
         color: var(--text3);
@@ -2719,18 +2711,6 @@
         if (s < 60) return `${s}s`;
         return `${Math.floor(s / 60)}m ${s % 60}s`;
       }
-      /** Format Xray step duration (nanoseconds) to human-readable string */
-      function formatStepDuration(ns) {
-        if (!ns || ns === 0) return "—";
-        if (ns < 1000) return `${ns}ns`;
-        if (ns < 1000000) return `${(ns / 1000).toFixed(0)}ms`;
-        if (ns < 1000000000) return `${(ns / 1000000).toFixed(1)}s`;
-        const secs = ns / 1000000000;
-        const mins = Math.floor(secs / 60);
-        const remainingSecs = (secs % 60).toFixed(1);
-        if (mins === 0) return `${remainingSecs}s`;
-        return `${mins}m ${remainingSecs}s`;
-      }
       function statusClass(s) {
         s = (s || "").toUpperCase();
         if (s === "PASS" || s === "PASSED") return "pass";
@@ -3175,11 +3155,9 @@
                   steps {
                     id
                     status { name }
-                    keyword
                     action
                     result
                     comment
-                    duration
                     evidence { 
                       filename 
                       downloadLink 
@@ -3246,13 +3224,10 @@
             steps: (run.steps || []).map((s, i) => ({
               id: s.id || `step-${i}`,
               index: i + 1,
-              keyword: s.keyword || "",
               action: s.action || s.result || "",
               expected: s.result || "",
               status: s.status?.name || "TODO",
               comment: s.comment || "",
-              duration: s.duration || null,
-              durationFormatted: formatStepDuration(s.duration),
               evidence: (s.evidence || []).map(e => ({
                 filename: e.filename,
                 downloadLink: e.downloadLink || null,
@@ -3269,79 +3244,24 @@
           };
         });
       }
-    
+     
       
-    // --- Raven pagination (Server/DC) ---
-      async function fetchRavenTestRunsPaginated(jiraUrl, execKey, creds) {
-        let allRuns = [];
-        let start = 0;
-        const limit = 100;
-        let hasMore = true;
-        let pageCount = 0;
-        const maxPages = 20;
-        while (hasMore && pageCount < maxPages) {
-          const url = `${jiraUrl}/rest/raven/2.0/api/testexec/${execKey}/test?detailed=true&start=${start}&limit=${limit}`;
-          const headers = buildHeaders(creds);
-          let res;
-          try {
-            res = await fetch(url, { headers });
-          } catch (e) {
-            console.error(`Raven fetch error for ${execKey}`, e);
-            break;
-          }
-          if (!res.ok) break;
-          const data = await res.json();
-          if (!data || !data.length) break;
-          allRuns.push(...data);
-          if (data.length < limit) hasMore = false;
-          else {
-            start += limit;
-            pageCount++;
-          }
+    // --- Raven step evidence support (v16) ---
+    async function fetchRavenStepAttachments(jiraUrl, testRunId, stepId, headers) {
+      const url = `${jiraUrl}/rest/raven/2.0/api/testrun/${testRunId}/step/${stepId}/attachment`;
+      try {
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          console.warn(`Raven step attachment failed for ${testRunId}/${stepId}: ${res.status}`);
+          return [];
         }
-        const serverEnvField =
-          document.getElementById("serverEnvField")?.value ||
-          "customfield_10028";
-        const browserField =
-          document.getElementById("browserField")?.value || "customfield_10029";
-        return allRuns.map((run) => {
-          let env = "",
-            browser = "";
-          if (run.testEnvironments && Array.isArray(run.testEnvironments)) {
-            const nonBrowser = run.testEnvironments.filter(
-              (e) => !/(chrome|firefox|safari|edge)/i.test(e),
-            );
-            env = nonBrowser[0] || "";
-            browser =
-              run.testEnvironments.find((e) =>
-                /(chrome|firefox|safari|edge)/i.test(e),
-              ) || "";
-          }
-          return {
-            id: run.id || run.key,
-            key: run.key || "",
-            summary: run.summary || "",
-            status: run.status || "TODO",
-            assignee: run.assignee?.displayName || "",
-            environment: env,
-            browser: browser,
-            started: run.startDate || null,
-            finished: run.finishDate || null,
-            error: run.comment || null,
-            steps: (run.steps || []).map((s, i) => ({
-              index: i + 1,
-              action: s.step || "",
-              expected: s.expectedResult || "",
-              status: s.status || "TODO",
-              comment: s.comment || "",
-            })),
-            evidence: [],
-            labels: run.labels || [],
-          };
-        });
-      }
+        return await res.json();
+      } catch (e) {
+        console.error(`Raven step attachment error for ${testRunId}/${stepId}:`, e);
+        return [];
+    }
 
-      async function fetchTestRuns(jiraUrl, exec, xrayType, creds) {
+    async function fetchTestRuns(jiraUrl, exec, xrayType, creds) {
         // ✅ HARD GUARD
         if (!exec || typeof exec !== "object") {
           console.warn("Skipping Xray fetch – invalid execution:", exec);
@@ -3353,13 +3273,14 @@
             console.warn("Missing issueId for Xray Cloud execution:", exec);
             return [];
           }
-
+          
           // ✅ Xray Cloud REQUIRES issueId
           return await fetchXrayCloudTestRuns(exec.issueId);
         }
-
-        // ✅ Server / Data Center still uses the execution KEY
-        return await fetchRavenTestRunsPaginated(jiraUrl, exec.key, creds);
+        
+        // ✅ Only Cloud supported - Server/DC removed per user request
+        console.warn("Only Cloud mode is supported. Server/DC mode has been removed.");
+        return [];
       }
 
       // --- Config Persistence (v10) ---
@@ -4379,16 +4300,18 @@ function renderAll() {
         const stepsHtml = (r.steps || [])
           .map(
             (s) => `
-              <div class="step-row ${s.status === 'FAIL' ? 'step-failed' : ''}">
-                <div class="step-num">#${s.index}</div>
-                ${s.keyword ? `<div class="step-keyword">${escapeHtml(s.keyword)}</div>` : ''}
-                <div class="step-desc">
-                  <div style="color:var(--text);margin-bottom:3px">${escapeHtml(s.action)}</div>
-                  ${s.comment ? `<div class="step-comment">${escapeHtml(s.comment)}</div>` : ''}
-                  ${s.expected ? `<div style="font-size:11px;color:var(--text3)">Expected: ${escapeHtml(s.expected)}</div>` : ''}
-                  ${s.evidence?.length ? `<div class="step-evidence">${renderStepEvidence(s.evidence)}</div>` : ''}
-                </div>
-                <span class="step-duration">${s.durationFormatted || '—'}</span>
+               <div class="step-row ${s.status === 'FAIL' ? 'step-failed' : ''}">
+                 <div class="step-num">#${s.index}</div>
+                 <div class="step-desc">
+                   <div style="color:var(--text);margin-bottom:3px">${escapeHtml(s.action)}</div>
+                   ${s.comment ? `<div class="step-comment">${escapeHtml(s.comment)}</div>` : ''}
+                   ${s.expected ? `<div style="font-size:11px;color:var(--text3)">Expected: ${escapeHtml(s.expected)}</div>` : ''}
+                   ${s.evidence?.length ? `<div class="step-evidence">${renderStepEvidence(s.evidence)}</div>` : ''}
+                 </div>
+                 <span class="step-duration">—</span>
+                 <span class="status-badge ${statusClass(s.status)}" style="flex-shrink:0">${escapeHtml(s.status)}</span>
+               </div>
+                <span class="step-duration">—</span>
                 <span class="status-badge ${statusClass(s.status)}" style="flex-shrink:0">${escapeHtml(s.status)}</span>
               </div>`,
           )
@@ -4500,21 +4423,20 @@ function renderAll() {
               <!-- Failed Steps -->
               <div style="padding:12px 16px">
                 <div class="detail-section-title">Test Steps</div>
-                <div class="step-list">
-                  ${(r.steps || []).map(s => `
-                    <div class="step-row ${s.status === 'FAIL' ? 'step-failed' : ''}">
-                      <div class="step-num">#${s.index}</div>
-                      ${s.keyword ? `<div class="step-keyword">${escapeHtml(s.keyword)}</div>` : ''}
-                      <div class="step-desc">
-                        <div>${escapeHtml(s.action)}</div>
-                        ${s.comment ? `<div class="step-comment">${escapeHtml(s.comment)}</div>` : ''}
-                        ${s.evidence?.length ? `<div class="step-evidence">${renderStepEvidence(s.evidence)}</div>` : ''}
+                  <div class="step-list">
+                    ${(r.steps || []).map(s => `
+                      <div class="step-row ${s.status === 'FAIL' ? 'step-failed' : ''}">
+                        <div class="step-num">#${s.index}</div>
+                        <div class="step-desc">
+                          <div>${escapeHtml(s.action)}</div>
+                          ${s.comment ? `<div class="step-comment">${escapeHtml(s.comment)}</div>` : ''}
+                          ${s.evidence?.length ? `<div class="step-evidence">${renderStepEvidence(s.evidence)}</div>` : ''}
+                        </div>
+                        <span class="step-duration">—</span>
+                        <span class="status-badge ${statusClass(s.status)}">${s.status}</span>
                       </div>
-                      <span class="step-duration">${s.durationFormatted || '—'}</span>
-                      <span class="status-badge ${statusClass(s.status)}">${s.status}</span>
-                    </div>
-                  `).join("")}
-                </div>
+                    `).join("")}
+                  </div>
               </div>
 
               <!-- Stack Trace -->

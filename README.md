@@ -2,7 +2,16 @@
 
 A self-contained, zero-install HTML dashboard for visualizing Xray test execution results from Jira/Xray.
 
-**Version**: 15 - Line Chart + Raven Pagination + Enhanced Failures Tab
+**Latest Version**: 15 - Trend Line + Raven Pagination + Enhanced Failures Tab
+
+## Versions
+
+| Version | Highlights |
+|---------|-----------|
+| **v15** | Line Chart + Raven Pagination + Enhanced Failures Tab |
+| **v14** | Raven pagination, auto-fetch with cancel |
+| **v9-13** | Label analytics, trends, flaky detection |
+| **v1-8** | Initial releases, basic functionality |
 
 ---
 
