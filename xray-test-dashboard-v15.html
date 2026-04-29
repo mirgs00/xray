@@ -6344,8 +6344,8 @@ function renderAll() {
 
         await RuntimeEnv.detect();
         loadFullConfig();
-        applyEnvConfig();
-        loadDashboardState();
+        loadDashboardState();      // Load localStorage first
+        applyEnvConfig();          // Then env.js overwrites (takes precedence)
         attachAutoSaveListeners();
         enhanceApiTab();
         state.isReady = true;

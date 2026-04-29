@@ -1,0 +1,19 @@
+# Credentials - NEVER COMMIT
+env.js
+server-env.js
+
+# Dependencies
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
