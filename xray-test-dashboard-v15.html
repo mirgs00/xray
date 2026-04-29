@@ -3207,7 +3207,7 @@
           const envs = run?.xrayFields?.environments || [];
           const testType = run?.test?.testType?.name || "Unknown";
 
-          return {
+          const mappedRun = {
             id: run.id,
             key: run.test?.jira?.key || "",
             summary: run.test?.jira?.summary || "",
@@ -3221,27 +3221,34 @@
             finished: null,
             error: run.unstructured || null,
             defects: run.defects || [],
-            steps: (run.steps || []).map((s, i) => ({
-              id: s.id || `step-${i}`,
-              index: i + 1,
-              action: s.action || s.result || "",
-              expected: s.result || "",
-              status: s.status?.name || "TODO",
-              comment: s.comment || "",
-              evidence: (s.evidence || []).map(e => ({
-                filename: e.filename,
-                downloadLink: e.downloadLink || null,
-                storedInJira: e.storedInJira || false,
-                size: e.size || 0
-              })),
-            })),
-            evidence: (run.evidence || []).map(e => ({
+            steps: (run.steps || []).map((s, i) => {
+              return {
+                id: s.id || `step-${i}`,
+                index: i + 1,
+                action: s.action || s.result || "",
+                expected: s.result || "",
+                status: s.status?.name || "TODO",
+                comment: s.comment || "",
+                evidence: (s.evidence || []).map(e => {
+                  return {
+                    filename: e.filename,
+                    downloadLink: e.downloadLink || null,
+                    storedInJira: e.storedInJira || false,
+                    size: e.size || 0
+                  };
+                }),
+              };
+            }),
+            evidence: (run.evidence || []).map(e => {
+              return {
                 filename: e.filename,
                 downloadLink: e.downloadLink || null,
                 storedInJira: e.storedInJira || false
-              })),
+              };
+            }),
             labels: [],
           };
+          return mappedRun;
         });
       }
       
