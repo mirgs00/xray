@@ -604,6 +604,46 @@
         color: var(--text2);
         line-height: 1.5;
       }
+      .step-keyword {
+        font-size: 10px;
+        color: var(--info);
+        font-weight: 600;
+        text-transform: uppercase;
+        min-width: 50px;
+        padding-top: 2px;
+      }
+      .step-comment {
+        font-size: 11px;
+        color: var(--text3);
+        margin-top: 3px;
+        font-style: italic;
+      }
+      .step-duration {
+        font-size: 11px;
+        color: var(--text3);
+        font-family: 'Space Mono', monospace;
+        min-width: 80px;
+        text-align: right;
+        padding-top: 2px;
+      }
+      .step-evidence {
+        margin-top: 6px;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .evidence-link {
+        font-size: 11px;
+        color: var(--info);
+        text-decoration: none;
+        padding: 2px 6px;
+        background: rgba(77, 171, 255, 0.08);
+        border: 1px solid rgba(77, 171, 255, 0.2);
+        border-radius: 3px;
+      }
+      .evidence-link:hover {
+        background: rgba(77, 171, 255, 0.15);
+      }
       .error-block {
         background: rgba(255, 77, 106, 0.06);
         border: 1px solid rgba(255, 77, 106, 0.15);
@@ -1496,6 +1536,13 @@
           </div>
           <div class="config-group">
             <label>&nbsp;</label
+            ><button class="btn btn-secondary" onclick="autoDetectRelease()">
+              🔍 Auto Detect Release
+            </button>
+          </div>
+
+          <div class="config-group">
+            <label>&nbsp;</label
             ><button class="btn btn-primary" id="fetchExecBtn" onclick="triggerFetch()">
               ⚡ Fetch Executions
             </button>
@@ -1530,13 +1577,6 @@
             id="autoFetchEta"
             style="font-size:11px;color:var(--text3);margin-left:8px"
           ></span>
-
-          <div class="config-group">
-            <label>&nbsp;</label
-            ><button class="btn btn-secondary" onclick="autoDetectRelease()">
-              🔍 Auto Detect Release
-            </button>
-          </div>
           <div class="config-group">
             <label>&nbsp;</label
             ><button class="btn btn-secondary" onclick="clearDateFilters()">
@@ -2679,6 +2719,18 @@
         if (s < 60) return `${s}s`;
         return `${Math.floor(s / 60)}m ${s % 60}s`;
       }
+      /** Format Xray step duration (nanoseconds) to human-readable string */
+      function formatStepDuration(ns) {
+        if (!ns || ns === 0) return "—";
+        if (ns < 1000) return `${ns}ns`;
+        if (ns < 1000000) return `${(ns / 1000).toFixed(0)}ms`;
+        if (ns < 1000000000) return `${(ns / 1000000).toFixed(1)}s`;
+        const secs = ns / 1000000000;
+        const mins = Math.floor(secs / 60);
+        const remainingSecs = (secs % 60).toFixed(1);
+        if (mins === 0) return `${remainingSecs}s`;
+        return `${mins}m ${remainingSecs}s`;
+      }
       function statusClass(s) {
         s = (s || "").toUpperCase();
         if (s === "PASS" || s === "PASSED") return "pass";
@@ -3121,14 +3173,25 @@
                     testType { name }
                   }
                   steps {
+                    id
                     status { name }
+                    keyword
                     action
                     result
+                    comment
+                    duration
+                    evidence { 
+                      filename 
+                      downloadLink 
+                      storedInJira 
+                      size
+                    }
                   }
                   evidence { 
                     filename 
                     downloadLink 
                     storedInJira 
+                    size
                   }
                 }
               }
@@ -3181,11 +3244,21 @@
             error: run.unstructured || null,
             defects: run.defects || [],
             steps: (run.steps || []).map((s, i) => ({
+              id: s.id || `step-${i}`,
               index: i + 1,
+              keyword: s.keyword || "",
               action: s.action || s.result || "",
-              expected: "",
+              expected: s.result || "",
               status: s.status?.name || "TODO",
-              comment: "",
+              comment: s.comment || "",
+              duration: s.duration || null,
+              durationFormatted: formatStepDuration(s.duration),
+              evidence: (s.evidence || []).map(e => ({
+                filename: e.filename,
+                downloadLink: e.downloadLink || null,
+                storedInJira: e.storedInJira || false,
+                size: e.size || 0
+              })),
             })),
             evidence: (run.evidence || []).map(e => ({
                 filename: e.filename,
@@ -4305,14 +4378,37 @@ function renderAll() {
       function renderDetailCell(r) {
         const stepsHtml = (r.steps || [])
           .map(
-            (s) =>
-              `<div class="step-row"><div class="step-num">#${s.index}</div><div class="step-desc"><div style="color:var(--text);margin-bottom:3px">${escapeHtml(s.action)}</div><div style="font-size:11px;color:var(--text3)">Expected: ${escapeHtml(s.expected)}</div></div><span class="status-badge ${statusClass(s.status)}" style="flex-shrink:0">${escapeHtml(s.status)}</span></div>`,
+            (s) => `
+              <div class="step-row ${s.status === 'FAIL' ? 'step-failed' : ''}">
+                <div class="step-num">#${s.index}</div>
+                ${s.keyword ? `<div class="step-keyword">${escapeHtml(s.keyword)}</div>` : ''}
+                <div class="step-desc">
+                  <div style="color:var(--text);margin-bottom:3px">${escapeHtml(s.action)}</div>
+                  ${s.comment ? `<div class="step-comment">${escapeHtml(s.comment)}</div>` : ''}
+                  ${s.expected ? `<div style="font-size:11px;color:var(--text3)">Expected: ${escapeHtml(s.expected)}</div>` : ''}
+                  ${s.evidence?.length ? `<div class="step-evidence">${renderStepEvidence(s.evidence)}</div>` : ''}
+                </div>
+                <span class="step-duration">${s.durationFormatted || '—'}</span>
+                <span class="status-badge ${statusClass(s.status)}" style="flex-shrink:0">${escapeHtml(s.status)}</span>
+              </div>`,
           )
           .join("");
         const errorHtml = r.error
-          ? `<div><div class="detail-section-title">Error Log</div><div class="error-block"><div class="error-label">⚠ Failure Details</div><div class="error-text">${escapeHtml(r.error)}</div></div>${r.evidence?.length ? `<div style="margin-top:8px;font-size:12px;color:var(--text3)">📎 ${escapeHtml(r.evidence.join(", "))}</div>` : ""}</div>`
+          ? `<div><div class="detail-section-title">Error Log</div><div class="error-block"><div class="error-label">⚠ Failure Details</div><div class="error-text">${escapeHtml(r.error)}</div></div>${r.evidence?.length ? `<div style="margin-top:8px;font-size:12px;color:var(--text3)">📎 ${r.evidence.map(e => `<a href="${escapeHtml(e.downloadLink || '#')}" target="_blank">${escapeHtml(e.filename)}</a>`).join(', ')}</div>` : ""}</div>`
           : `<div style="color:var(--pass);font-size:12px;padding:12px 0">✓ No errors recorded</div>`;
         return `<div class="detail-inner"><div><div class="detail-section-title">Test Steps</div><div class="step-list">${stepsHtml || '<div style="color:var(--text3);font-size:12px">No steps recorded</div>'}</div></div><div>${errorHtml}<div style="margin-top:14px"><div class="detail-section-title">Metadata</div><div class="meta-grid"><div class="meta-item"><div class="meta-k">Execution</div><div class="meta-v">${escapeHtml(r.execKey)}</div></div><div class="meta-item"><div class="meta-k">Server Env</div><div class="meta-v">${escapeHtml(r.environment || "—")}</div></div><div class="meta-item"><div class="meta-k">Browser</div><div class="meta-v">${escapeHtml(r.browser || "—")}</div></div><div class="meta-item"><div class="meta-k">Labels</div><div class="meta-v">${escapeHtml((r.labels || []).join(", ") || "—")}</div></div><div class="meta-item"><div class="meta-k">Started</div><div class="meta-v">${fmt(r.started)}</div></div><div class="meta-item"><div class="meta-k">Duration</div><div class="meta-v">${dur(r.started, r.finished)}</div></div></div></div></div></div>`;
+      }
+
+      /** Render step-level evidence thumbnails */
+      function renderStepEvidence(evidence) {
+        if (!evidence?.length) return '';
+        return evidence.map(e => {
+          const isImage = (e.filename || '').match(/\.(png|jpg|jpeg|gif|webp)$/i);
+          if (isImage && e.downloadLink) {
+            return `<img class="evidence-thumb" src="${escapeHtml(e.downloadLink)}" alt="${escapeHtml(e.filename)}" onclick="showEvidenceModal('${escapeHtml(e.downloadLink)}')" title="${escapeHtml(e.filename)}">`;
+          }
+          return `<a class="evidence-link" href="${escapeHtml(e.downloadLink || '#')}" target="_blank" title="${escapeHtml(e.filename)}">📎 ${escapeHtml(e.filename)}</a>`;
+        }).join('');
       }
       function toggleDetail(id) {
         const row = document.getElementById(`detail-${id}`);
@@ -4408,7 +4504,13 @@ function renderAll() {
                   ${(r.steps || []).map(s => `
                     <div class="step-row ${s.status === 'FAIL' ? 'step-failed' : ''}">
                       <div class="step-num">#${s.index}</div>
-                      <div class="step-desc">${escapeHtml(s.action)}</div>
+                      ${s.keyword ? `<div class="step-keyword">${escapeHtml(s.keyword)}</div>` : ''}
+                      <div class="step-desc">
+                        <div>${escapeHtml(s.action)}</div>
+                        ${s.comment ? `<div class="step-comment">${escapeHtml(s.comment)}</div>` : ''}
+                        ${s.evidence?.length ? `<div class="step-evidence">${renderStepEvidence(s.evidence)}</div>` : ''}
+                      </div>
+                      <span class="step-duration">${s.durationFormatted || '—'}</span>
                       <span class="status-badge ${statusClass(s.status)}">${s.status}</span>
                     </div>
                   `).join("")}
@@ -5029,7 +5131,8 @@ function renderAll() {
           }
 
           // ✅ Fix Version
-          document.getElementById("fixVersion").value = version.name;
+          const fixVerInput = document.getElementById("fixVersion");
+          fixVerInput.value = version.name;
           state.fixVersion = version.name;
           document.getElementById("topFixVersion").textContent =
             `fixVersion: ${version.name}`;
@@ -5046,15 +5149,39 @@ function renderAll() {
           autoSaveConfig();
 
           notify(
-            `Detected active release: ${version.name} (${version.startDate} → ${version.releaseDate})`,
+            `Detected active release: ${version.name} (${version.startDate} → ${version.releaseDate}). You can still edit the field if needed.`,
             "success"
           );
-          
+
+          // ✅ Add clear button if not present
+          if (!document.getElementById("clearFixVerBtn")) {
+            const btn = document.createElement("button");
+            btn.id = "clearFixVerBtn";
+            btn.className = "btn btn-secondary";
+            btn.style.cssText = "padding:4px 10px;font-size:11px;margin-left:8px";
+            btn.textContent = "Clear";
+            btn.onclick = clearFixVersion;
+            fixVerInput.parentNode.appendChild(btn);
+          }
+           
+
 
         } catch (err) {
           console.error(err);
           notify(`Auto-detect failed: ${err.message}`, "error");
         }
+      }
+
+      /** Clear fix version field and unlock it */
+      function clearFixVersion() {
+        const fixVerInput = document.getElementById("fixVersion");
+        fixVerInput.value = "";
+        fixVerInput.readOnly = false;
+        state.fixVersion = "";
+        document.getElementById("topFixVersion").textContent = "fixVersion: —";
+        document.getElementById("startDate").value = "";
+        document.getElementById("endDate").value = "";
+        notify("Fix Version cleared. Enter new version or date range.", "info");
       }
 
       function populateReleaseDropdown(versions, current) {
@@ -5326,6 +5453,12 @@ function renderAll() {
             return false;
           }
 
+          // ✅ Require fixVersion or date range
+          if (!fixVer && !startDate && !endDate) {
+            notify("Enter a Fix Version or Date Range to search Test Executions", "error");
+            return false;
+          }
+
           const creds = loadCredentials();
           if (!creds?.hasAuth) {
             notify("⚠ No credentials — configure in API Setup", "error");
@@ -5384,8 +5517,7 @@ function renderAll() {
                 key: issue.key || "",
                 issueId: issue.id ? String(issue.id) : null,
                 summary: issue.fields?.summary || "",
-                fixVersion:
-                  issue.fields?.fixVersions?.[0]?.name || fixVer,
+                fixVersion: issue.fields?.fixVersions?.[0]?.name || "",  // Don't fallback to input
                 environment:
                   issue.fields?.[serverEnvField] ||
                   issue.fields?.environment ||
