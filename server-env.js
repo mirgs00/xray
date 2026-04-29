@@ -31,13 +31,24 @@
 
 module.exports = {
 
-  JIRA_EMAIL: '',
+  // ── Jira connection ───────────────────────────────────────────
+  JIRA_BASE_URL: '',           // 'https://your-org.atlassian.net'
 
-  JIRA_API_TOKEN: ' ',
+  JIRA_PROJECT_KEY: '',        // 'YOURPROJ'
 
-  XRAY_CLIENT_ID: ' ',
+  // ── Jira authentication ───────────────────────────────────────
+  JIRA_EMAIL: '',              // Jira Cloud email (for basic auth)
 
-  XRAY_CLIENT_SECRET: ' '
+  JIRA_API_TOKEN: '',          // Jira API token (https://id.atlassian.com/manage-profile/security/api-tokens)
+
+  AUTH_MODE: 'basic',          // 'basic' | 'bearer' | 'xray_cloud'
+
+  // ── Xray Cloud credentials ──────────────────────────────────────
+  XRAY_CLIENT_ID: '',          // Xray Cloud Client ID (from Xray Settings → API Keys)
+
+  XRAY_CLIENT_SECRET: '',      // Xray Cloud Client Secret
+
+  XRAY_TYPE: 'cloud'           // 'cloud' | 'server'
 
 };
 

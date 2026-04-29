@@ -6207,6 +6207,49 @@ function renderAll() {
           document.getElementById("slotBVersion").value = env.compareReleaseB;
       }
 
+      /** Apply config fetched from proxy server (server-env.js credentials) */
+      function applyProxyConfig(config) {
+        if (!config) return;
+
+        // Populate form fields
+        if (config.jiraBaseUrl)
+          document.getElementById("jiraUrl").value = config.jiraBaseUrl;
+        if (config.jiraProjectKey)
+          document.getElementById("projectKey").value = config.jiraProjectKey;
+        if (config.xrayType)
+          document.getElementById("xrayType").value = config.xrayType;
+        if (config.authMode) {
+          document.getElementById("authMode").value = config.authMode;
+          toggleAuthFields();
+        }
+        if (config.jiraEmail)
+          document.getElementById("authEmail").value = config.jiraEmail;
+        if (config.jiraApiToken)
+          document.getElementById("authToken").value = config.jiraApiToken;
+        if (config.xrayClientId)
+          document.getElementById("xrayClientId").value = config.xrayClientId;
+        if (config.xrayClientSecret)
+          document.getElementById("xrayClientSecret").value = config.xrayClientSecret;
+
+        // Store in sessionStorage (same format as applyEnvConfig)
+        if (config.authMode && (config.jiraApiToken || config.xrayClientId)) {
+          sessionStorage.setItem(
+            "xray_creds",
+            JSON.stringify({
+              mode: config.authMode,
+              email: config.jiraEmail || "",
+              token: config.jiraApiToken || "",
+              bearerToken: "",
+              xrayClientId: config.xrayClientId || "",
+              xrayClientSecret: config.xrayClientSecret || "",
+              hasAuth: true,
+            }),
+          );
+        }
+
+        console.info("[xray] Loaded credentials from proxy config");
+      }
+
       function getTestTypeCounts(runs) {
         const counts = {};
         runs.forEach(r => {
@@ -6331,24 +6374,39 @@ function renderAll() {
         if (name === "labels") renderLabelAnalytics();
       }
 
-      // --- DOM Ready ---
-      document.addEventListener("DOMContentLoaded", async () => {
-        
-        const savedTheme = localStorage.getItem("xray_theme");
-        if (savedTheme) {
-          document.documentElement.setAttribute(
-            "data-theme",
-            savedTheme
-          );
-        }
+       // --- DOM Ready ---
+       document.addEventListener("DOMContentLoaded", async () => {
 
-        await RuntimeEnv.detect();
-        loadFullConfig();
-        loadDashboardState();      // Load localStorage first
-        applyEnvConfig();          // Then env.js overwrites (takes precedence)
-        attachAutoSaveListeners();
-        enhanceApiTab();
-        state.isReady = true;
+         const savedTheme = localStorage.getItem("xray_theme");
+         if (savedTheme) {
+           document.documentElement.setAttribute(
+             "data-theme",
+             savedTheme
+           );
+         }
+
+         await RuntimeEnv.detect();
+
+         // If proxy mode, fetch config from server (includes credentials)
+         if (RuntimeEnv.type === "server-proxy" && RuntimeEnv.proxyUrl) {
+           try {
+             const resp = await fetch(`${RuntimeEnv.proxyUrl}/api/config`);
+             if (resp.ok) {
+               const config = await resp.json();
+               // Apply proxy config to form + sessionStorage
+               applyProxyConfig(config);
+             }
+           } catch (e) {
+             console.warn("[xray] Failed to fetch proxy config:", e.message);
+           }
+         }
+
+         loadFullConfig();
+         loadDashboardState();      // Load localStorage first
+         applyEnvConfig();          // Then env.js overwrites (takes precedence)
+         attachAutoSaveListeners();
+         enhanceApiTab();
+         state.isReady = true;
         const jqlInput = document.getElementById("jqlInput");
         if (jqlInput) jqlInput.value = `issuetype="Test Execution"`;
         const fixVerInput = document.getElementById("fixVersion");
