@@ -3150,7 +3150,9 @@
                   defects
                   startedOn
                   finishedOn
-                  environments
+                  testExecution {
+                    testEnvironments
+                  }
                   test {
                     jira(fields: ["key", "summary"])
                     testType { name }
@@ -3207,7 +3209,7 @@
         }
 
         return allRuns.map(run => {
-          const envs = run?.environments || run?.xrayFields?.environments || [];
+          const envs = run?.testExecution?.testEnvironments || [];
           const testType = run?.test?.testType?.name || "Unknown";
 
           const mappedRun = {
@@ -3219,7 +3221,7 @@
             environment: envs[0] || "",
             environments: envs,
             testType,
-            browser: "",
+            browser: envs.join(", ") || "",
             started: run.startedOn || null,
             finished: run.finishedOn || null,
             error: run.unstructured || null,
