@@ -3244,23 +3244,7 @@
           };
         });
       }
-     
       
-    // --- Raven step evidence support (v16) ---
-    async function fetchRavenStepAttachments(jiraUrl, testRunId, stepId, headers) {
-      const url = `${jiraUrl}/rest/raven/2.0/api/testrun/${testRunId}/step/${stepId}/attachment`;
-      try {
-        const res = await fetch(url, { headers });
-        if (!res.ok) {
-          console.warn(`Raven step attachment failed for ${testRunId}/${stepId}: ${res.status}`);
-          return [];
-        }
-        return await res.json();
-      } catch (e) {
-        console.error(`Raven step attachment error for ${testRunId}/${stepId}:`, e);
-        return [];
-    }
-
     async function fetchTestRuns(jiraUrl, exec, xrayType, creds) {
         // ✅ HARD GUARD
         if (!exec || typeof exec !== "object") {
