@@ -1576,11 +1576,12 @@
             </button>
           </div>
           <div class="config-group">
-            <label>&nbsp;</label
-            ><button class="btn btn-secondary" onclick="loadMockData()">
-              🎭 Load Demo Data
+            <label>&nbsp;</label>
+            ><button class="btn btn-secondary" onclick="clearAllData()">
+              🗑 Clear All Data
             </button>
           </div>
+        </div>
           <div class="config-group">
             <label>&nbsp;</label
             ><button class="btn btn-secondary" onclick="clearAllData()">
@@ -1664,7 +1665,7 @@
             <div class="empty-icon">📡</div>
             <div class="empty-title">No data loaded</div>
             <div class="empty-sub">
-              Configure your Jira connection above or click "Load Demo Data"
+               Configure your Jira connection above or click "Fetch Executions"
             </div>
           </div>
         </div>
@@ -2257,7 +2258,7 @@
             <div class="empty-icon">🔄</div>
             <div class="empty-title">Load two releases to compare</div>
             <div class="empty-sub">
-              Enter a fix version in each slot and click Load, or use Demo data.
+              Enter a fix version in each slot and click Load, or use Fetch Executions.
             </div>
           </div>
         </div>
@@ -2647,7 +2648,7 @@
       // - Cloud-only support (Server/DC/Raven removed)
       // - GraphQL API with step evidence
       // - Pass rate line chart using Chart.js
-      // - Config persistence, label analytics, demo data, etc.
+       // - Config persistence, label analytics, etc.
       // ==============================================================================
 
       const state = {
@@ -3596,7 +3597,7 @@
           });
         });
 
-        // Second pass: gather test runs by label
+        // Second pass: gather test runs by label - track LATEST per test
         state.testRuns.forEach(run => {
           const labels = Array.isArray(run.labels) && run.labels.length
             ? run.labels
@@ -3608,8 +3609,19 @@
               if (!entry.tests.has(run.key)) {
                 entry.tests.set(run.key, {
                   ...run,
-                  latestRunDate: run.started
+                  latestRunDate: run.started,
+                  latestStatus: run.status
                 });
+              } else {
+                // Keep only the latest run per test
+                const existing = entry.tests.get(run.key);
+                if (new Date(run.started) > new Date(existing.latestRunDate)) {
+                  entry.tests.set(run.key, {
+                    ...run,
+                    latestRunDate: run.started,
+                    latestStatus: run.status
+                  });
+                }
               }
             }
           });
@@ -3644,18 +3656,13 @@
             .sort((a, b) => new Date(b.started || b.updated || 0) - new Date(a.started || a.updated || 0));
 
           const latestExec = latestExecs[0] || null;
-          const latestExecTestRuns = latestExec
-            ? stat.tests.filter(t => {
-                const execStart = new Date(latestExec.started || latestExec.updated || 0).getTime();
-                const runStart = new Date(t.started || 0).getTime();
-                return Math.abs(runStart - execStart) < 86400000; // Within 24h
-              })
-            : stat.tests;
 
-          const pass = latestExecTestRuns.filter(t => statusClass(t.status) === "pass").length;
-          const fail = latestExecTestRuns.filter(t => statusClass(t.status) === "fail").length;
-          const skip = latestExecTestRuns.filter(t => statusClass(t.status) === "skip").length;
-          const blocked = latestExecTestRuns.filter(t => t.status === "BLOCKED").length;
+          // Use tests map values (already tracking latest per test)
+          const testRuns = Array.from(stat.tests.values());
+          const pass = testRuns.filter(t => statusClass(t.latestStatus) === "pass").length;
+          const fail = testRuns.filter(t => statusClass(t.latestStatus) === "fail").length;
+          const skip = testRuns.filter(t => statusClass(t.latestStatus) === "skip").length;
+          const blocked = testRuns.filter(t => statusClass(t.latestStatus) === "blocked").length;
 
           return `
             <div class="label-section" data-label="${escapeHtml(stat.label)}">
@@ -3688,7 +3695,7 @@
                     <tr>
                       <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'key')">TEST KEY ↕</th>
                       <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'summary')">SUMMARY ↕</th>
-                      <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'status')">STATUS ↕</th>
+                      <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'status')">LATEST STATUS ↕</th>
                       <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'environment')">ENVIRONMENT ↕</th>
                       <th onclick="sortLabelTests('${escapeHtml(stat.label)}', 'started')">LAST RUN ↕</th>
                     </tr>
@@ -3703,25 +3710,70 @@
         }).join("");
       }
 
-      function renderLabelTestRows(tests, label) {
-        const jiraBase = document.getElementById("jiraUrl")?.value || '';
-        return tests.map(test => {
-          const sc = statusClass(test.status);
-          return `
-            <tr>
-              <td>
-                <a class="label-test-key" href="${jiraBase}/browse/${test.key}" target="_blank" rel="noopener">
-                  ${escapeHtml(test.key)}
-                </a>
-              </td>
-              <td class="test-summary" title="${escapeHtml(test.summary)}">${escapeHtml(test.summary)}</td>
-              <td><span class="status-badge ${sc}">${test.status}</span></td>
-              <td>${escapeHtml(test.environment || '—')}</td>
-              <td class="duration-val">${fmt(test.started)}</td>
-            </tr>
-          `;
-        }).join("");
-      }
+       function renderLabelTestRows(tests, label) {
+         const jiraBase = document.getElementById("jiraUrl")?.value || '';
+         return tests.map(test => {
+           const sc = statusClass(test.latestStatus || test.status);
+           return `
+             <tr onclick="toggleLabelTestDetail('${test.id}')" style="cursor:pointer">
+               <td>
+                 <a class="label-test-key" href="${jiraBase}/browse/${test.key}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+                   ${escapeHtml(test.key)}
+                 </a>
+               </td>
+               <td class="test-summary" title="${escapeHtml(test.summary)}">${escapeHtml(test.summary)}</td>
+               <td><span class="status-badge ${sc}">${test.latestStatus || test.status}</span></td>
+               <td><span class="env-chip">${escapeHtml(test.environment || "—")}</span></td>
+               <td class="duration-val">${fmt(test.latestRunDate || test.started)}</td>
+             </tr>
+             <tr class="label-test-detail-row" id="label-test-detail-${test.id}" style="display:none">
+               <td colspan="5">
+                 ${renderLabelTestDetail(test)}
+               </td>
+             </tr>
+           `;
+         }).join("");
+       }
+
+       function renderLabelTestDetail(test) {
+         const stepsHtml = (test.steps || []).map(s => `
+           <div class="step-row ${s.status === 'FAIL' ? 'step-failed' : ''}">
+             <div class="step-num">#${s.index}</div>
+             <div class="step-desc">
+               <div style="color:var(--text)">${escapeHtml(s.action || '')}</div>
+               ${s.comment ? `<div class="step-comment">${escapeHtml(s.comment)}</div>` : ''}
+             </div>
+             <span class="status-badge ${statusClass(s.status)}" style="flex-shrink:0">${s.status}</span>
+           </div>
+         `).join('');
+
+         const errorHtml = test.error
+           ? `<div class="error-block"><div class="error-label">⚠ Failure Details</div><div class="error-text">${escapeHtml(test.error)}</div></div>`
+           : '';
+
+         return `
+           <div class="detail-inner" style="margin:8px 0">
+             <div>
+               <div class="detail-section-title">Test Steps</div>
+               <div class="step-list">${stepsHtml || '<div style="color:var(--text3);font-size:12px">No steps recorded</div>'}</div>
+             </div>
+             <div>
+               ${errorHtml}
+               <div style="margin-top:8px;font-size:11px;color:var(--text3)">
+                 Environment: ${escapeHtml(test.environment || '—')} |
+                 Browser: ${escapeHtml(test.browser || '—')}
+               </div>
+             </div>
+           </div>
+         `;
+       }
+
+       function toggleLabelTestDetail(id) {
+         const row = document.getElementById(`label-test-detail-${id}`);
+         if (row) {
+           row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+         }
+       }
 
       function toggleLabelSection(label) {
         const section = document.getElementById(`section-${label}`);
@@ -5149,127 +5201,7 @@ function renderAll() {
           .join("");
       }
 
-      function loadMockData() {
-        const fv =
-          document.getElementById("fixVersion").value || "Release 14.2 eBus";
-        state.fixVersion = fv;
-        document.getElementById("topFixVersion").textContent =
-          `fixVersion: ${fv}`;
-        const envs = ["UAT", "SIT", "PROD-MIRROR"];
-        const browsers = ["Chrome", "Firefox", "Edge", "Safari"];
-        const assignees = [
-          "alice.zhang",
-          "bob.ross",
-          "carol.smith",
-          "dev.auto",
-        ];
-        const statuses = [
-          "PASS",
-          "PASS",
-          "PASS",
-          "PASS",
-          "PASS",
-          "PASS",
-          "FAIL",
-          "FAIL",
-          "SKIP",
-          "BLOCKED",
-        ];
-        const labelOptions = [
-          ["ProjectA", "Automation", "Regression"],
-          ["ProjectB", "Automation", "Smoke"],
-          ["ProjectC", "Manual", "Regression"],
-          ["ProjectA", "Manual", "Smoke"],
-          ["ProjectB", "Automation", "API"],
-          ["ProjectC", "Automation", "Regression"],
-          ["ProjectA", "Automation", "Smoke"],
-          ["ProjectB", "Manual", "Regression"],
-          ["ProjectC", "Manual", "API"],
-          ["Unlabeled"],
-        ];
-        state.executions = Array.from({ length: 5 }, (_, i) => ({
-          key: `TEST-${1000 + i}`,
-          summary: `Automated Regression Suite — Sprint ${30 + i} [${fv}]`,
-          fixVersion: fv,
-          environment: envs[i % envs.length],
-          assignee: assignees[i % 4],
-          started: new Date(Date.now() - (i + 1) * 3600000).toISOString(),
-          finished: new Date(Date.now() - i * 3600000).toISOString(),
-          status: "DONE",
-          labels: labelOptions[i % labelOptions.length],
-        }));
-        const tests = [
-          "Login with valid credentials",
-          "Login with invalid credentials",
-          "Forgot password flow",
-          "Create new user account",
-          "Update profile information",
-          "Delete user account",
-          "Search functionality - basic",
-          "Search with filters",
-          "Pagination on results",
-          "Add item to cart",
-          "Remove item from cart",
-          "Checkout flow - success",
-          "Checkout flow - declined card",
-          "Order history page",
-          "Invoice download",
-          "API health check",
-          "JWT token validation",
-          "Rate limiting check",
-          "File upload - valid",
-          "File upload - invalid",
-          "Drag & drop upload",
-          "Dashboard load time",
-          "Report generation",
-          "Export to CSV",
-          "Email notification",
-          "SMS notification",
-          "Push notification",
-          "Password complexity",
-          "XSS prevention",
-          "SQL injection prevention",
-        ];
-        state.testRuns = [];
-        let runId = 1;
-        state.executions.forEach((exec) => {
-          const count = Math.floor(18 + Math.random() * 12);
-          for (let i = 0; i < count; i++) {
-            const testIdx = (runId + i) % tests.length;
-            const status =
-              statuses[Math.floor(Math.random() * statuses.length)];
-            const start = new Date(
-              new Date(exec.started).getTime() +
-                i * 60000 +
-                Math.random() * 30000,
-            );
-            const end = new Date(
-              start.getTime() + 1000 + Math.random() * 30000,
-            );
-            const steps = Array.from(
-              { length: Math.floor(3 + Math.random() * 5) },
-              (_, si) => ({
-                index: si + 1,
-                action: [
-                  `Navigate to page`,
-                  `Click element`,
-                  `Enter test data`,
-                  `Verify result`,
-                  `Assert response`,
-                ][si % 5],
-                expected: `Expected result ${si + 1}`,
-                status: status === "FAIL" && si === 2 ? "FAIL" : "PASS",
-                comment: "",
-              }),
-            );
-            let labels;
-            if (Math.random() > 0.3) {
-              labels = [...exec.labels];
-            } else {
-              const randLabel =
-                labelOptions[Math.floor(Math.random() * labelOptions.length)];
-              labels = [...randLabel];
-            }
+       // Demo data removed in v17 - use real data via Fetch Executions only
             state.testRuns.push({
               id: `run-${runId++}`,
               execKey: exec.key,
@@ -5335,6 +5267,7 @@ function renderAll() {
             ...r,
             execKey: exec.key,
             execEnv: exec.environment,
+            labels: exec.labels || [],  // Propagate labels from execution to test runs
           }));
         }
 
@@ -5575,6 +5508,7 @@ function renderAll() {
           fetchProgress.finish();
           document.getElementById("fetchExecBtn").disabled = false;
           document.getElementById("cancelFetchBtn").style.display = "none";
+          saveTestData(); // Save fetched data to localStorage
           return true; // ✅ critical for auto-fetch controller
         } catch (err) {
           console.error("triggerFetch failed", err);
@@ -6351,21 +6285,79 @@ function renderAll() {
         } catch {}
       }
 
-      function saveDashboardState() {
-        try {
-          localStorage.setItem(
-            "xray_dashboard_state",
-            JSON.stringify({
-              jiraUrl: document.getElementById("jiraUrl").value,
-              projectKey: document.getElementById("projectKey").value,
-              fixVersion: document.getElementById("fixVersion").value,
-              xrayType: document.getElementById("xrayType").value,
-            }),
-          );
-        } catch {}
-      }
-      
-      // ✅ REQUIRED by dedupeTestRuns
+       function saveDashboardState() {
+         try {
+           localStorage.setItem(
+             "xray_dashboard_state",
+             JSON.stringify({
+               jiraUrl: document.getElementById("jiraUrl").value,
+               projectKey: document.getElementById("projectKey").value,
+               fixVersion: document.getElementById("fixVersion").value,
+               xrayType: document.getElementById("xrayType").value,
+             }),
+           );
+         } catch {}
+       }
+
+       // --- Test Data Persistence (v17) ---
+       const TEST_DATA_KEY = "xray_fetched_test_data";
+
+       function saveTestData() {
+         try {
+           const data = {
+             testRuns: state.testRuns,
+             executions: state.executions,
+             timestamp: new Date().toISOString(),
+             version: "v17"
+           };
+           const json = JSON.stringify(data);
+           // Check size (localStorage limit ~5MB)
+           if (json.length > 4.5 * 1024 * 1024) {
+             notify("Warning: Dataset too large for localStorage", "error");
+             return;
+           }
+           localStorage.setItem(TEST_DATA_KEY, json);
+           console.log(`[xray] Saved ${state.testRuns.length} runs, ${state.executions.length} executions`);
+         } catch (e) {
+           console.error("[xray] Failed to save test data:", e);
+           if (e.name === "QuotaExceededError") {
+             notify("Storage full - cannot save test data", "error");
+           }
+         }
+       }
+
+       function loadTestData() {
+         try {
+           const stored = localStorage.getItem(TEST_DATA_KEY);
+           if (!stored) return false;
+           
+           const data = JSON.parse(stored);
+           if (!data.testRuns || !data.executions) return false;
+           
+           state.testRuns = data.testRuns;
+           state.executions = data.executions;
+           
+           // Update UI elements
+           const fv = data.testRuns[0]?.fixVersion || "";
+           if (fv) {
+             state.fixVersion = fv;
+             document.getElementById("fixVersion").value = fv;
+             document.getElementById("topFixVersion").textContent = `fixVersion: ${fv}`;
+           }
+           
+           console.log(`[xray] Loaded ${state.testRuns.length} runs, ${state.executions.length} executions from ${data.timestamp}`);
+           return data.timestamp;
+         } catch (e) {
+           console.error("[xray] Failed to load test data:", e);
+           return false;
+         }
+       }
+
+       function clearTestData() {
+         localStorage.removeItem(TEST_DATA_KEY);
+       }
+       
+       // ✅ REQUIRED by dedupeTestRuns
       function statusRank(status) {
         switch ((status || "").toUpperCase()) {
           case "FAIL":
@@ -6481,22 +6473,35 @@ function renderAll() {
          attachAutoSaveListeners();
          enhanceApiTab();
          state.isReady = true;
-        const jqlInput = document.getElementById("jqlInput");
-        if (jqlInput) jqlInput.value = `issuetype="Test Execution"`;
-        const fixVerInput = document.getElementById("fixVersion");
-        if (fixVerInput && fixVerInput.value) {
-          state.fixVersion = fixVerInput.value;
-          document.getElementById("topFixVersion").textContent =
-            `fixVersion: ${fixVerInput.value}`;
-        }
-        const canvas = document.getElementById("passRateLineChart");
-        if (canvas) canvas.style.display = "none";
-        renderAll();
-        notify(
-          `Dashboard ready — ${RuntimeEnv.type === "server-proxy" ? "Server (Proxy) mode" : "Browser mode"}`,
-          "success",
-        );
-      });
+         const jqlInput = document.getElementById("jqlInput");
+         if (jqlInput) jqlInput.value = `issuetype="Test Execution"`;
+         const fixVerInput = document.getElementById("fixVersion");
+         if (fixVerInput && fixVerInput.value) {
+           state.fixVersion = fixVerInput.value;
+           document.getElementById("topFixVersion").textContent =
+             `fixVersion: ${fixVerInput.value}`;
+         }
+         const canvas = document.getElementById("passRateLineChart");
+         if (canvas) canvas.style.display = "none";
+
+         // Load saved test data if available
+         const savedTimestamp = loadTestData();
+         if (savedTimestamp) {
+           populateEnvFilter();
+           populateBrowserFilter();
+           populateLabelChips();
+           renderAll();
+           renderLabelAnalytics();
+           notify(`Loaded saved data from ${new Date(savedTimestamp).toLocaleString()}`, "success");
+         } else {
+           renderAll();  // Render empty state
+         }
+
+         notify(
+           `Dashboard ready — ${RuntimeEnv.type === "server-proxy" ? "Server (Proxy) mode" : "Browser mode"}`,
+           "success",
+         );
+       });
      
       function toggleTheme() {
         const html = document.documentElement;
@@ -6621,22 +6626,23 @@ function renderAll() {
         notify("Fetch cancelled", "success");
       }
 
-      function clearAllData() {
-        if (!confirm("Clear all loaded data? This cannot be undone.")) return;
-        state.testRuns = [];
-        state.executions = [];
-        state.cloudPageIndex = 0;
-        state.cloudHasMore = true;
-        state.autoPaging = false;
-        state.autoPagingPaused = false;
-        state.pageTimings = [];
-        document.getElementById("fetchProgressWrap").style.display = "none";
-        stopAutoFetchUI();
-        document.getElementById("cancelFetchBtn").style.display = "none";
-        document.getElementById("fetchExecBtn").disabled = false;
-        renderAll();
-        notify("All data cleared", "success");
-      }
+       function clearAllData() {
+         if (!confirm("Clear all loaded data? This cannot be undone.")) return;
+         state.testRuns = [];
+         state.executions = [];
+         state.cloudPageIndex = 0;
+         state.cloudHasMore = true;
+         state.autoPaging = false;
+         state.autoPagingPaused = false;
+         state.pageTimings = [];
+         clearTestData(); // Clear persisted test data
+         document.getElementById("fetchProgressWrap").style.display = "none";
+         stopAutoFetchUI();
+         document.getElementById("cancelFetchBtn").style.display = "none";
+         document.getElementById("fetchExecBtn").disabled = false;
+         renderAll();
+         notify("All data cleared", "success");
+       }
 
 function sleep(ms) {
         return new Promise(r => setTimeout(r, ms));
