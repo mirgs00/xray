@@ -4841,6 +4841,11 @@ function renderAll() {
             const skip = runs.filter(r => statusClass(r.status) === "skip").length;
             const total = runs.length;
 
+            // Get unique environments and browsers from associated test runs
+            const execRuns = state.testRuns.filter(r => r.execKey === e.key);
+            const envs = [...new Set(execRuns.map(r => r.environment).filter(Boolean))];
+            const browsers = [...new Set(execRuns.map(r => r.browser).filter(Boolean))];
+
             return `
               <tr>
                 <td>
@@ -4859,7 +4864,13 @@ function renderAll() {
                   </div>
                 </td>
                 <td><span class="duration-val">${fmt(e.started)}</span></td>
-                <td><span class="env-chip">${escapeHtml(e.environment || "—")}</span></td>
+                <td>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap">
+                    ${envs.map(e => `<span class="env-chip">${escapeHtml(e)}</span>`).join("")}
+                    ${browsers.map(b => `<span class="env-chip" style="background:rgba(180,77,255,0.08);border-color:rgba(180,77,255,0.2);color:var(--blocked)">${escapeHtml(b)}</span>`).join("")}
+                    ${!envs.length && !browsers.length ? "—" : ""}
+                  </div>
+                </td>
                 <td class="exec-pass">${pass}</td>
                 <td class="exec-fail">${fail}</td>
                 <td class="exec-skip">${skip}</td>
