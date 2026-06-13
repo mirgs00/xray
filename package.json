@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node xray-proxy-server.js",
     "serve": "npx http-server -p 8080",
-    "dev": "start cmd /c \"node xray-proxy-server.js\" && start cmd /c \"npx http-server -p 8080\""
+    "dev": "node xray-proxy-server.js & npx http-server -p 8080",
+    "test": "node --test xray-proxy-server.test.js"
   },
   "devDependencies": {
     "http-server": "^14.1.1"

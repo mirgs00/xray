@@ -65,11 +65,25 @@ function json(res, status, body, reqId) {
   res.end(JSON.stringify(body));
 }
 
+const MAX_BODY_BYTES = 1024 * 1024; // 1 MB
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+    let totalBytes = 0;
+    let rejected = false;
+    req.on('data', c => {
+      totalBytes += c.length;
+      if (!rejected && totalBytes > MAX_BODY_BYTES) {
+        rejected = true;
+        reject(new Error('Request body too large'));
+        return;
+      }
+      if (!rejected) chunks.push(c);
+    });
+    req.on('end', () => {
+      if (!rejected) resolve(Buffer.concat(chunks).toString());
+    });
     req.on('error', reject);
   });
 }
@@ -169,20 +183,6 @@ const server = http.createServer(async (req, res) => {
       }, reqId);
     }
 
-    /* ---------- CONFIG (credentials for browser) ---------- */
-    if (pathname === '/api/config') {
-      return json(res, 200, {
-        jiraBaseUrl: SERVER_ENV.JIRA_BASE_URL || '',
-        jiraEmail: SERVER_ENV.JIRA_EMAIL || '',
-        jiraApiToken: SERVER_ENV.JIRA_API_TOKEN || '',
-        xrayClientId: SERVER_ENV.XRAY_CLIENT_ID || '',
-        xrayClientSecret: SERVER_ENV.XRAY_CLIENT_SECRET || '',
-        authMode: SERVER_ENV.AUTH_MODE || 'basic',
-        xrayType: SERVER_ENV.XRAY_TYPE || 'cloud',
-        jiraProjectKey: SERVER_ENV.JIRA_PROJECT_KEY || ''
-      }, reqId);
-    }
-
     /* ---------- JIRA SEARCH ---------- */
     if (req.method === 'GET' && pathname === '/api/jira/search') {
       if (!query.jiraUrl || !query.jql) {
@@ -221,6 +221,7 @@ const server = http.createServer(async (req, res) => {
 
     json(res, 404, { error: 'Not found' }, reqId);
   } catch (e) {
+    console.error('[' + reqId + ']', e.stack || e.message);
     json(res, 500, { error: e.message }, reqId);
   }
 });

@@ -1582,13 +1582,6 @@
             </button>
           </div>
         </div>
-          <div class="config-group">
-            <label>&nbsp;</label
-            ><button class="btn btn-secondary" onclick="clearAllData()">
-              🗑 Clear All Data
-            </button>
-          </div>
-        </div>
         <!-- ✅ Fetch Progress (DO NOT put inside config-panel) -->
 <div
   id="fetchProgressWrap"
@@ -2971,7 +2964,7 @@
           if (this.type === "server-proxy") {
             dot.style.background = "#00e5a0";
             status.innerHTML = `<strong>✓ Server Mode</strong> — Proxy active (CORS resolved)`;
-            info.innerHTML = `🖥️ ${this.serverInfo?.server?.platform} | Node ${this.serverInfo?.server?.nodeVersion}`;
+            info.innerHTML = `🖥️ ${escapeHtml(this.serverInfo?.server?.platform || '')} | Node ${escapeHtml(this.serverInfo?.server?.nodeVersion || '')}`;
           } else {
             dot.style.background = "#ffa93d";
             status.innerHTML = `<strong>⚠ Browser Mode</strong> — Direct API (may have CORS issues)`;
@@ -3027,10 +3020,6 @@
       }
       
       
-      /**
-       * Fetch ALL Jira issues for a JQL using search/jql pagination
-       * (Cloud-safe, uses nextPageToken)
-       */
       /**
        * Fetch ALL Jira issues for a JQL using search/jql pagination
        * (Cloud-safe, uses nextPageToken)
@@ -3318,11 +3307,11 @@
           serverEnvField: document.getElementById("serverEnvField").value,
           browserField: document.getElementById("browserField").value,
         };
-        localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
+        sessionStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
         notify("Configuration saved", "success");
       }
       function loadFullConfig() {
-        const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
+        const saved = sessionStorage.getItem(CONFIG_STORAGE_KEY);
         if (!saved) return;
         try {
           const config = JSON.parse(saved);
@@ -3701,7 +3690,7 @@
                     </tr>
                   </thead>
                   <tbody id="tests-body-${escapeHtml(stat.label)}">
-                    ${renderLabelTestRows(latestExecTestRuns, stat.label)}
+                    ${renderLabelTestRows(testRuns, stat.label)}
                   </tbody>
                 </table>
               </div>
@@ -4344,7 +4333,7 @@ function renderAll() {
           pageRuns
             .map(
               (r) =>
-                `<tr onclick="toggleDetail('${r.id}')"><tr><span class="test-key">${escapeHtml(r.key)}</span></td><td><div class="test-summary" title="${escapeHtml(r.summary)}">${escapeHtml(r.summary)}</div></td><td><span class="status-badge ${statusClass(r.status)}"><span class="dot"></span>${escapeHtml(r.status)}</span></td><td><span class="env-chip">${escapeHtml(r.environment || "—")}</span></td><td><span class="env-chip" style="background:rgba(180,77,255,0.08);border-color:rgba(180,77,255,0.2);color:var(--blocked)">${escapeHtml(r.browser || "—")}</span></td><td style="font-size:12px">${escapeHtml(r.assignee || "—")}</td><td><span class="duration-val">${fmt(r.started)}</span></td><td><span class="duration-val">${dur(r.started, r.finished)}</span></td><td><span class="pill">${r.steps?.length || 0} steps</span></td></tr><tr class="detail-row" id="detail-${r.id}"><td colspan="9" class="detail-cell">${renderDetailCell(r)}</td></tr>`,
+                `<tr onclick="toggleDetail('${r.id}')"><td><span class="test-key">${escapeHtml(r.key)}</span></td><td><div class="test-summary" title="${escapeHtml(r.summary)}">${escapeHtml(r.summary)}</div></td><td><span class="status-badge ${statusClass(r.status)}"><span class="dot"></span>${escapeHtml(r.status)}</span></td><td><span class="env-chip">${escapeHtml(r.environment || "—")}</span></td><td><span class="env-chip" style="background:rgba(180,77,255,0.08);border-color:rgba(180,77,255,0.2);color:var(--blocked)">${escapeHtml(r.browser || "—")}</span></td><td style="font-size:12px">${escapeHtml(r.assignee || "—")}</td><td><span class="duration-val">${fmt(r.started)}</span></td><td><span class="duration-val">${dur(r.started, r.finished)}</span></td><td><span class="pill">${r.steps?.length || 0} steps</span></td></tr><tr class="detail-row" id="detail-${r.id}"><td colspan="9" class="detail-cell">${renderDetailCell(r)}</td></tr>`,
             )
             .join("") ||
           `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No tests match your filters</div></div></td></tr>`;

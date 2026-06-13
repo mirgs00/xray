@@ -2,13 +2,14 @@
 
 A self-contained, zero-install HTML dashboard for visualizing Xray test execution results from Jira/Xray.
 
-**Latest Version**: 15 - Trend Line + Raven Pagination + Enhanced Failures Tab
+**Latest Version**: 17 - Security hardening, bug fixes, and improved code quality
 
 ## Versions
 
 | Version | Highlights |
 |---------|-----------|
-| **v15** | Line Chart + Raven Pagination + Enhanced Failures Tab |
+| **v17** | Security hardening, bug fixes, improved code quality, automated tests |
+| **v15-16** | Line Chart, Raven Pagination, Enhanced Failures Tab (archived) |
 | **v14** | Raven pagination, auto-fetch with cancel |
 | **v9-13** | Label analytics, trends, flaky detection |
 | **v1-8** | Initial releases, basic functionality |
@@ -40,7 +41,7 @@ npm install
    }
    ```
 
-2. Open `xray-test-dashboard-v15.html` in browser
+2. Open `xray-test-dashboard-v17.html` in browser
 3. **Warning**: May hit CORS issues in some browsers
 
 #### Option B: Server Mode (Recommended)
@@ -57,13 +58,13 @@ npm install
 
 2. Start proxy server:
    ```bash
-   node xray-proxy-server.js
+   npm start
    # Or on Windows: double-click start-dashboard.bat
    ```
 
 3. Open browser:
    ```
-   http://localhost:3001/xray-test-dashboard-v15.html?proxy=local
+   http://localhost:3001/xray-test-dashboard-v17.html?proxy=local
    ```
 
 ---
@@ -75,7 +76,7 @@ npm install
 | **`env.js`** | Browser-side config (Jira URL, project, auth mode) | Browser `<script>` tag |
 | **`server-env.js`** | Server-side API credentials (Node.js only) | `xray-proxy-server.js` via `require()` |
 | **`xray-proxy-server.js`** | Proxy server (port 3001, CORS handling) | Node.js runtime |
-| **`xray-test-dashboard-v15.html`** | Main dashboard UI | Browser |
+| **`xray-test-dashboard-v17.html`** | Main dashboard UI | Browser |
 
 ⚠ **Security**: Both `env.js` and `server-env.js` contain credentials.
 Add both to `.gitignore` - never commit them!
@@ -97,28 +98,26 @@ Add both to `.gitignore` - never commit them!
 
 ---
 
-## Latest Features (v15)
+## Security Features
 
-### Failures Tab Enhancements
-- ✅ Shows **latest failed run per test** (not all failures)
-- ✅ Evidence screenshots with thumbnail + modal popup
-- ✅ Execution links (`/browse/{execKey}`)
-- ✅ Test links (`/browse/{testKey}`)
-- ✅ Stack trace display
-- ✅ Failed step highlighting
+- **No credential exposure**: Server credentials stay server-side
+- **Session-only storage**: Saved config uses `sessionStorage` (clears on tab close)
+- **Request size limits**: Server rejects oversized request bodies (1MB max)
+- **Input escaping**: All dynamic HTML content is escaped to prevent XSS
 
-### Test Executions Tab
-- ✅ Quick stats bar (total/filtered counts update with filters)
-- ✅ Search + filter by status/env/version/labels
-- ✅ Sortable columns (click headers)
-- ✅ Pagination (20/page) with prev/next
-- ✅ "Clear Filters" button resets all
+---
 
-### Label Analytics Tab
-- ✅ Expandable sections per label
-- ✅ Latest execution status indicators
-- ✅ Sortable test table within sections
-- ✅ Search within expanded sections
+## Testing
+
+```bash
+npm test
+```
+
+Tests cover:
+- Health endpoint structure and CORS headers
+- Route validation and error handling
+- Request body size limits
+- Config endpoint removal verification
 
 ---
 
@@ -136,23 +135,20 @@ Add both to `.gitignore` - never commit them!
 ## Development
 
 ### Prerequisites
-- Node.js 16+
+- Node.js 18+ (for built-in test runner)
 - Jira account with API token
 - Xray Cloud or Server/DC instance
 
 ### Local Development
 ```bash
-# Terminal 1: Start proxy
+# Start proxy server
 npm start
-# or
-node xray-proxy-server.js
 
-# Terminal 2: Open dashboard
-# If using proxy:
-open "http://localhost:3001/xray-test-dashboard-v15.html?proxy=local"
+# Or for development (proxy + file server):
+npm run dev
 
-# If using browser mode (CORS risk):
-open xray-test-dashboard-v15.html
+# Open browser:
+# http://localhost:3001/xray-test-dashboard-v17.html?proxy=local
 ```
 
 ---
@@ -193,7 +189,8 @@ Use Server Mode (proxy) instead of Browser Mode.
 
 | Version | Highlights |
 |---------|-----------|
-| **v15** | Failures tab rewrite, evidence support, Test Executions filtering |
+| **v17** | Security hardening, bug fixes, improved code quality, automated tests |
+| **v15-16** | Line Chart, Raven Pagination, Enhanced Failures Tab |
 | **v14** | Raven pagination, auto-fetch with cancel |
 | **v9-13** | Label analytics, trends, flaky detection |
 | **v1-8** | Initial releases, basic functionality |
