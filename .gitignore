@@ -1,6 +1,5 @@
 # Credentials - NEVER COMMIT
 env.js
-server-env.js
 
 # Dependencies
 node_modules/
